@@ -106,6 +106,18 @@ function cleanTeamId(name: string): string {
 function getTeamLogoUrl(teamName: string): string {
   const b = teamName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   
+  if (b.includes("lanus")) return "https://images.thesportsdb.com/images/media/team/badge/vqpvyx1421498188.png/tiny";
+  if (b.includes("mirassol")) return "https://images.thesportsdb.com/images/media/team/badge/f3b8901693751735.png/tiny";
+  if (b.includes("ldu q") || b.includes("quito")) return "https://images.thesportsdb.com/images/media/team/badge/twpsvy1422055610.png/tiny";
+  if (b.includes("always ready")) return "https://images.thesportsdb.com/images/media/team/badge/7o97k61611352494.png/tiny";
+  if (b.includes("estudiantes")) return "https://images.thesportsdb.com/images/media/team/badge/8st7f41550232742.png/tiny";
+  if (b.includes("medellin")) return "https://images.thesportsdb.com/images/media/team/badge/yxtusw1421500244.png/tiny";
+  if (b.includes("cusco")) return "https://images.thesportsdb.com/images/media/team/badge/pqvtpy1473211516.png/tiny";
+  if (b.includes("nacional")) return "https://images.thesportsdb.com/images/media/team/badge/tywtqu1421498007.png/tiny";
+  if (b.includes("coquimbo")) return "https://images.thesportsdb.com/images/media/team/badge/trtrrs1421503348.png/tiny";
+  if (b.includes("universitario")) return "https://images.thesportsdb.com/images/media/team/badge/xtpqru1422055535.png/tiny";
+  if (b.includes("tolima")) return "https://images.thesportsdb.com/images/media/team/badge/wwvrrp1422056073.png/tiny";
+
   if (b.includes("flamengo")) return "https://images.thesportsdb.com/images/media/team/badge/7vyv971550232585.png/tiny";
   if (b.includes("palmeiras")) return "https://images.thesportsdb.com/images/media/team/badge/8qwvwv1550232607.png/tiny";
   if (b.includes("sao paulo")) return "https://images.thesportsdb.com/images/media/team/badge/qtpssy1550232646.png/tiny";
@@ -161,53 +173,115 @@ const generateMockStandings = (league: string): StandingRow[] => {
   }));
 };
 
+// Helper to generate dynamic matching dates
+const getTodayAtTime = (hour: number, minute: number): string => {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};
+
 // Unified premium mock fixtures to align Today (Hoje) & Tomorrow (Amanhã) games
 const getFallbackMatchesTodayTomorrow = (): Game[] => {
   const now = Date.now();
   const list: Game[] = [
-    // Hoje
+    // Hoje - CONMEBOL Copa Libertadores
     {
-      gameId: "M-BSA-1",
-      homeTeam: "Flamengo",
-      awayTeam: "Palmeiras",
-      homeLogo: getTeamLogoUrl("Flamengo"),
-      awayLogo: getTeamLogoUrl("Palmeiras"),
-      league: "Brasileirão Série A",
-      date: new Date(now + 1 * 3600000).toISOString(), // starts in 1 hour
+      gameId: "M-CL-LANUS-MIRASSOL",
+      homeTeam: "Lanús (Arg)",
+      awayTeam: "Mirassol (Bra)",
+      homeLogo: getTeamLogoUrl("Lanús"),
+      awayLogo: getTeamLogoUrl("Mirassol"),
+      league: "Copa Libertadores",
+      date: getTodayAtTime(19, 0),
       status: "SCHEDULED",
-      oddsHome: 2.15,
-      oddsDraw: 3.25,
-      oddsAway: 3.35,
+      oddsHome: 1.91,
+      oddsDraw: 3.20,
+      oddsAway: 4.50,
       updatedAt: new Date().toISOString()
     },
     {
-      gameId: "M-BSA-2",
+      gameId: "M-CL-LDUQ-ALWAYSREADY",
+      homeTeam: "LDU Quito (Ecu)",
+      awayTeam: "Always Ready (Bol)",
+      homeLogo: getTeamLogoUrl("LDU Quito"),
+      awayLogo: getTeamLogoUrl("Always Ready"),
+      league: "Copa Libertadores",
+      date: getTodayAtTime(19, 0),
+      status: "SCHEDULED",
+      oddsHome: 1.33,
+      oddsDraw: 6.00,
+      oddsAway: 7.00,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      gameId: "M-CL-ESTUDIANTES-MEDELLIN",
+      homeTeam: "Estudiantes (Arg)",
+      awayTeam: "Ind. Medellín (Col)",
+      homeLogo: getTeamLogoUrl("Estudiantes"),
+      awayLogo: getTeamLogoUrl("Indm"),
+      league: "Copa Libertadores",
+      date: getTodayAtTime(21, 30),
+      status: "SCHEDULED",
+      oddsHome: 1.62,
+      oddsDraw: 3.60,
+      oddsAway: 6.00,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      gameId: "M-CL-FLAMENGO-CUSCO",
+      homeTeam: "Flamengo (Bra)",
+      awayTeam: "Cusco (Per)",
+      homeLogo: getTeamLogoUrl("Flamengo"),
+      awayLogo: getTeamLogoUrl("Cusco"),
+      league: "Copa Libertadores",
+      date: getTodayAtTime(21, 30),
+      status: "SCHEDULED",
+      oddsHome: 1.14,
+      oddsDraw: 8.50,
+      oddsAway: 17.00,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      gameId: "M-CL-NACIONAL-COQUIMBO",
+      homeTeam: "Nacional (Uru)",
+      awayTeam: "Coquimbo Unido (Chi)",
+      homeLogo: getTeamLogoUrl("Nacional"),
+      awayLogo: getTeamLogoUrl("Coquimbo"),
+      league: "Copa Libertadores",
+      date: getTodayAtTime(21, 30),
+      status: "SCHEDULED",
+      oddsHome: 1.67,
+      oddsDraw: 3.70,
+      oddsAway: 5.00,
+      updatedAt: new Date().toISOString()
+    },
+    {
+      gameId: "M-CL-UNIVERSITARIO-TOLIMA",
+      homeTeam: "Universitario (Per)",
+      awayTeam: "Tolima (Col)",
+      homeLogo: getTeamLogoUrl("Universitario"),
+      awayLogo: getTeamLogoUrl("Tolima"),
+      league: "Copa Libertadores",
+      date: getTodayAtTime(21, 30),
+      status: "SCHEDULED",
+      oddsHome: 2.45,
+      oddsDraw: 3.00,
+      oddsAway: 3.10,
+      updatedAt: new Date().toISOString()
+    },
+    // Outstanding matches for other categories of Brasileiro Série A to keep things complete!
+    {
+      gameId: "M-BSA-1",
       homeTeam: "São Paulo",
       awayTeam: "Corinthians",
       homeLogo: getTeamLogoUrl("São Paulo"),
       awayLogo: getTeamLogoUrl("Corinthians"),
       league: "Brasileirão Série A",
-      date: new Date(now + 3 * 3600000).toISOString(),
+      date: getTodayAtTime(16, 0),
       status: "SCHEDULED",
       oddsHome: 1.85,
       oddsDraw: 3.40,
       oddsAway: 4.10,
-      updatedAt: new Date().toISOString()
-    },
-    {
-      gameId: "M-UCL-1",
-      homeTeam: "Real Madrid",
-      awayTeam: "Manchester City",
-      homeLogo: getTeamLogoUrl("Real Madrid"),
-      awayLogo: getTeamLogoUrl("Manchester City"),
-      league: "Champions League",
-      date: new Date(now - 1200 * 1000).toISOString(), // Live: 20 mins ago
-      status: "LIVE",
-      scoreHome: 1,
-      scoreAway: 0,
-      oddsHome: 2.30,
-      oddsDraw: 3.40,
-      oddsAway: 2.90,
       updatedAt: new Date().toISOString()
     },
     {
@@ -217,54 +291,11 @@ const getFallbackMatchesTodayTomorrow = (): Game[] => {
       homeLogo: getTeamLogoUrl("Liverpool"),
       awayLogo: getTeamLogoUrl("Chelsea"),
       league: "Premier League",
-      date: new Date(now + 6 * 3600000).toISOString(),
+      date: getTodayAtTime(18, 30),
       status: "SCHEDULED",
       oddsHome: 1.70,
       oddsDraw: 3.80,
       oddsAway: 4.50,
-      updatedAt: new Date().toISOString()
-    },
-    // Amanhã
-    {
-      gameId: "M-BSA-3",
-      homeTeam: "Vasco da Gama",
-      awayTeam: "Cruzeiro",
-      homeLogo: getTeamLogoUrl("Vasco da Gama"),
-      awayLogo: getTeamLogoUrl("Cruzeiro"),
-      league: "Brasileirão Série A",
-      date: new Date(now + 26 * 3600000).toISOString(), // tomorrow
-      status: "SCHEDULED",
-      oddsHome: 2.45,
-      oddsDraw: 3.10,
-      oddsAway: 2.85,
-      updatedAt: new Date().toISOString()
-    },
-    {
-      gameId: "M-CL-1",
-      homeTeam: "Boca Juniors",
-      awayTeam: "River Plate",
-      homeLogo: getTeamLogoUrl("Boca Juniors"),
-      awayLogo: getTeamLogoUrl("River Plate"),
-      league: "Copa Libertadores",
-      date: new Date(now + 28 * 3600000).toISOString(),
-      status: "SCHEDULED",
-      oddsHome: 2.20,
-      oddsDraw: 3.15,
-      oddsAway: 3.25,
-      updatedAt: new Date().toISOString()
-    },
-    {
-      gameId: "M-LL-1",
-      homeTeam: "Barcelona",
-      awayTeam: "Real Sociedad",
-      homeLogo: getTeamLogoUrl("Barcelona"),
-      awayLogo: getTeamLogoUrl("Real Sociedad"),
-      league: "La Liga",
-      date: new Date(now + 30 * 3600000).toISOString(),
-      status: "SCHEDULED",
-      oddsHome: 1.60,
-      oddsDraw: 4.00,
-      oddsAway: 5.20,
       updatedAt: new Date().toISOString()
     }
   ];
@@ -333,9 +364,10 @@ async function performMasterSynchronization() {
     }
 
     // Merge or Fallback to simulated perfect premium Today/Tomorrow games
-    if (sourceMatches.length === 0) {
-      sourceMatches = getFallbackMatchesTodayTomorrow();
-    }
+    const fallbackList = getFallbackMatchesTodayTomorrow();
+    const existingPairs = new Set(sourceMatches.map(g => `${g.homeTeam.toLowerCase()} vs ${g.awayTeam.toLowerCase()}`));
+    const uniqueFallbacks = fallbackList.filter(g => !existingPairs.has(`${g.homeTeam.toLowerCase()} vs ${g.awayTeam.toLowerCase()}`));
+    sourceMatches = [...uniqueFallbacks, ...sourceMatches];
 
     // Strict Filter: TODAY and TOMORROW only
     const tLower = new Date();

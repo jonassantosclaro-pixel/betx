@@ -186,139 +186,202 @@ export const HomeMain: React.FC<HomeMainProps> = ({
           <p className="text-xs text-slate-400 mt-1">Não há eventos marcados para hoje ou amanhã nesta categoria.</p>
         </div>
       ) : (
-        <div className="space-y-4 pl-0.5 pr-0.5">
-          {filteredGames.map((game) => {
+        <div className="space-y-8 pl-0.5 pr-0.5">
+          {Object.entries(
+            filteredGames.reduce((acc, game) => {
+              if (!acc[game.league]) acc[game.league] = [];
+              acc[game.league].push(game);
+              return acc;
+            }, {} as Record<string, Game[]>)
+          ).map(([leagueName, val]) => {
+            const leagueGames = val as Game[];
+            const isLibertadores = leagueName === "Copa Libertadores";
+
             return (
-              <div 
-                key={game.gameId} 
-                className="group relative bg-[#0F172A] border border-blue-900/35 rounded-2xl overflow-hidden hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-900/5 transition duration-200 flex flex-col pt-4 pb-4 px-5 gap-3 md:gap-4 justify-between"
-              >
-                {/* Event header metadata */}
-                <div className="flex items-center justify-between text-[11px] font-mono select-none">
-                  <div className="flex items-center gap-2 text-slate-300 font-bold">
-                    <Award className="h-4 w-4 text-blue-400" />
-                    <span>{game.league}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {game.status === "LIVE" ? (
-                      <span className="flex items-center gap-1 text-[10px] font-bold text-rose-400 animate-pulse bg-rose-500/15 border border-rose-500/20 px-2.5 py-0.5 rounded-full">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                        AO VIVO
-                      </span>
-                    ) : (
-                      <span className="text-slate-300 flex items-center gap-1 text-[10px] font-medium bg-slate-800/40 px-2.5 py-0.5 rounded-full border border-slate-700/30">
-                        <Calendar className="h-3.5 w-3.5 text-blue-405 text-blue-400" />
-                        {formatDate(game.date)}
-                      </span>
-                    )}
-
-                    {game.manualOdds && (
-                      <span className="bg-blue-400/15 border border-blue-400/25 px-2 py-0.5 rounded-full text-[9px] text-blue-300 font-extrabold uppercase">
-                        Odds Fixadas
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Team display and score tracking */}
-                <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
-                  
-                  {/* Teams badges */}
-                  <div className="md:col-span-5 flex items-center justify-between md:justify-start gap-4">
-                    {/* Home Team */}
-                    <div className="flex items-center gap-2.5">
-                      <img 
-                        src={game.homeLogo} 
-                        onError={(e) => { (e.target as HTMLImageElement).src = `https://placehold.co/40x44/1e3a8a/ffffff?text=${game.homeTeam[0]}` }} 
-                        alt="Logo" 
-                        referrerPolicy="no-referrer"
-                        className="h-9 w-9 object-contain shrink-0" 
-                      />
-                      <span className="font-display font-black text-sm text-white">{game.homeTeam}</span>
+              <div key={leagueName} className="space-y-4">
+                {/* Custom League Header Branded / Standard */}
+                {isLibertadores ? (
+                  <div className="flex flex-col items-center justify-center text-center pb-5 pt-3 pointer-events-none select-none">
+                    {/* Golden Owl Icon from Screenshot */}
+                    <div className="relative flex items-center justify-center p-3 rounded-full bg-slate-950/90 border border-amber-500/35 shadow-xl shadow-amber-500/10 mb-2">
+                      <svg className="w-14 h-14 text-amber-500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Owl Ears / Tufts */}
+                        <path d="M20 30L35 15L45 25L55 25L65 15L80 30" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                        {/* Owl Eyebrows */}
+                        <path d="M25 45L45 40M75 45L55 40" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                        {/* Owl Face & Beak */}
+                        <path d="M50 43L46 55H54L50 43Z" fill="currentColor"/>
+                        {/* Owl Eyes */}
+                        <circle cx="37" cy="52" r="10" stroke="currentColor" strokeWidth="3"/>
+                        <circle cx="37" cy="52" r="5" fill="currentColor"/>
+                        <circle cx="63" cy="52" r="10" stroke="currentColor" strokeWidth="3"/>
+                        <circle cx="63" cy="52" r="5" fill="currentColor"/>
+                        {/* Geometric Feathers / Cheeks */}
+                        <path d="M20 50L30 65H70L80 50" stroke="currentColor" strokeWidth="3" strokeLinejoin="round"/>
+                        <path d="M35 65L50 82L65 65" stroke="currentColor" strokeWidth="3" strokeLinejoin="round"/>
+                      </svg>
                     </div>
 
-                    <span className="text-blue-500 font-mono text-sm font-black uppercase shrink-0">vs</span>
-
-                    {/* Away Team */}
-                    <div className="flex items-center gap-2.5">
-                      <img 
-                        src={game.awayLogo} 
-                        onError={(e) => { (e.target as HTMLImageElement).src = `https://placehold.co/40x44/1e3a8a/ffffff?text=${game.awayTeam[0]}` }} 
-                        alt="Logo" 
-                        referrerPolicy="no-referrer"
-                        className="h-9 w-9 object-contain shrink-0" 
-                      />
-                      <span className="font-display font-black text-sm text-white">{game.awayTeam}</span>
+                    {/* Brand Name */}
+                    <h2 className="text-[#F1F5F9] text-3xl font-extrabold italic tracking-wider bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent drop-shadow">
+                      PHBET
+                    </h2>
+                    
+                    {/* Golden separator: JOGOS DO DIA */}
+                    <div className="flex items-center gap-3 my-1">
+                      <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-amber-500/60" />
+                      <span className="text-amber-400 font-display font-black tracking-[0.25em] text-xs uppercase">
+                        JOGOS DO DIA
+                      </span>
+                      <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-amber-500/60" />
                     </div>
-                  </div>
 
-                  {/* Score indicators if match is LIVE or FINISHED */}
-                  {(game.status === "LIVE" || game.status === "FINISHED") && (
-                    <div className="md:col-span-2 flex items-center justify-center">
-                      <div className="flex items-center bg-[#080D1A] px-3.5 py-1.5 rounded-xl border border-blue-900/40 gap-2 divide-x divide-blue-900">
-                        <span className="font-mono text-base font-black text-blue-400 px-1">{game.scoreHome ?? 0}</span>
-                        <span className="font-mono text-base font-black text-blue-400 px-1 pl-2">{game.scoreAway ?? 0}</span>
+                    {/* CONMEBOL Copa Libertadores tag */}
+                    <div className="flex flex-col items-center mt-1">
+                      <div className="text-[9px] font-bold text-amber-500/80 tracking-widest uppercase font-mono">
+                        - CONMEBOL -
+                      </div>
+                      <div className="text-sm font-black text-white tracking-wider flex items-center gap-1.5 mt-0.5">
+                        <span className="text-amber-400">🏆</span>
+                        <span className="text-xs uppercase tracking-wider font-mono">COPA LIBERTADORES</span>
                       </div>
                     </div>
-                  )}
-
-                  {/* Odds area layout */}
-                  <div className={`${(game.status === "LIVE" || game.status === "FINISHED") ? "md:col-span-5" : "md:col-span-7"} flex flex-wrap items-center justify-end gap-2.5`}>
-                    
-                    {/* Standard H2H multi buttons */}
-                    <div className="flex items-center bg-[#080D1A]/90 p-1.5 rounded-xl border border-blue-900/35 gap-1.5 w-full sm:w-auto">
-                      <button
-                        onClick={() => onOddsSelect(game, "Resultado Final", "Casa", game.oddsHome)}
-                        className={`flex-1 sm:flex-none flex flex-col items-center justify-center size-12 rounded-xl transition duration-150 select-none cursor-pointer border ${
-                          isSelected(game.gameId, "Casa")
-                            ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
-                            : "bg-slate-900/60 border-transparent hover:bg-blue-900/30 text-slate-300 hover:text-white"
-                        }`}
-                      >
-                        <span className="text-[9px] text-[#A5F3FC]/90 leading-none font-bold">1</span>
-                        <span className="font-mono text-xs font-black text-white mt-1">{game.oddsHome.toFixed(2)}</span>
-                      </button>
-
-                      <button
-                        onClick={() => onOddsSelect(game, "Resultado Final", "Empate", game.oddsDraw)}
-                        className={`flex-1 sm:flex-none flex flex-col items-center justify-center size-12 rounded-xl transition duration-150 select-none cursor-pointer border ${
-                          isSelected(game.gameId, "Empate")
-                            ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
-                            : "bg-slate-900/60 border-transparent hover:bg-blue-900/30 text-slate-300 hover:text-white"
-                        }`}
-                      >
-                        <span className="text-[9px] text-[#A5F3FC]/90 leading-none font-bold">X</span>
-                        <span className="font-mono text-xs font-black text-white mt-1">{game.oddsDraw.toFixed(2)}</span>
-                      </button>
-
-                      <button
-                        onClick={() => onOddsSelect(game, "Resultado Final", "Fora", game.oddsAway)}
-                        className={`flex-1 sm:flex-none flex flex-col items-center justify-center size-12 rounded-xl transition duration-150 select-none cursor-pointer border ${
-                          isSelected(game.gameId, "Fora")
-                            ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
-                            : "bg-slate-900/60 border-transparent hover:bg-blue-900/30 text-slate-300 hover:text-white"
-                        }`}
-                      >
-                        <span className="text-[9px] text-[#A5F3FC]/90 leading-none font-bold">2</span>
-                        <span className="font-mono text-xs font-black text-white mt-1">{game.oddsAway.toFixed(2)}</span>
-                      </button>
-                    </div>
-
-                    {/* Bet Builder trigger button */}
-                    <button
-                      id={`builder-btn-${game.gameId}`}
-                      onClick={() => onOpenBetBuilder(game)}
-                      className="w-full sm:w-auto h-12 flex items-center justify-center gap-1.5 px-4 rounded-xl text-xs font-black font-display uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 active:translate-y-0.5 transition cursor-pointer border border-blue-500"
-                    >
-                      <Sparkles className="h-4 w-4 text-white animate-pulse" />
-                      Criar Aposta
-                      <ArrowUpRight className="h-4 w-4 hover:translate-x-0.5 hover:-translate-y-0.5 transition-transform" />
-                    </button>
-
                   </div>
+                ) : (
+                  <div className="flex items-center gap-2 pb-2.5 pt-3 border-b border-blue-900/20 select-none">
+                    <Award className="h-4.5 w-4.5 text-blue-400" />
+                    <span className="text-xs font-mono font-bold uppercase text-slate-300 tracking-wider">
+                      {leagueName}
+                    </span>
+                  </div>
+                )}
 
+                {/* Matches layout inside this league category */}
+                <div className="space-y-3.5">
+                  {leagueGames.map((game) => {
+                    const matchTime = (() => {
+                      try {
+                        const d = new Date(game.date);
+                        return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false });
+                      } catch {
+                        return "19:00";
+                      }
+                    })();
+
+                    return (
+                      <div 
+                        key={game.gameId} 
+                        className="group relative bg-[#0F172A] border border-blue-900/30 rounded-xl overflow-hidden hover:border-amber-500/40 transition duration-200 flex flex-col pt-3.5 pb-3.5 px-4 md:px-5 gap-3"
+                      >
+                        {/* Main row */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          
+                          {/* Teams display vertical stack matching the image */}
+                          <div className="flex-1 flex flex-col gap-2.5">
+                            {/* Home Team */}
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={game.homeLogo} 
+                                onError={(e) => { (e.target as HTMLImageElement).src = `https://placehold.co/40x44/1e3a8a/ffffff?text=${game.homeTeam[0]}` }} 
+                                alt="Logo" 
+                                referrerPolicy="no-referrer"
+                                className="h-6 w-6 object-contain shrink-0" 
+                              />
+                              <span className="font-semibold text-xs md:text-sm text-slate-200">{game.homeTeam}</span>
+                            </div>
+
+                            {/* Away Team */}
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={game.awayLogo} 
+                                onError={(e) => { (e.target as HTMLImageElement).src = `https://placehold.co/40x44/1e3a8a/ffffff?text=${game.awayTeam[0]}` }} 
+                                alt="Logo" 
+                                referrerPolicy="no-referrer"
+                                className="h-6 w-6 object-contain shrink-0" 
+                              />
+                              <span className="font-semibold text-xs md:text-sm text-slate-200">{game.awayTeam}</span>
+                            </div>
+                          </div>
+
+                          {/* Middle column: PREVIEW Badge & Clock Hour (from Photo) */}
+                          <div className="flex items-center gap-3 bg-slate-900/35 p-2 sm:p-0 rounded-lg sm:bg-transparent justify-end sm:justify-start">
+                            <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-950/60 px-2.5 py-1 rounded-md border border-slate-800 uppercase tracking-widest select-none shrink-0">
+                              PREVIEW
+                            </span>
+
+                            {game.status === "LIVE" ? (
+                              <span className="text-[10px] font-black text-rose-500 animate-pulse bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 shrink-0">
+                                AO VIVO
+                              </span>
+                            ) : (
+                              <span className="text-amber-400 font-mono text-sm font-bold tracking-wide shrink-0">
+                                {matchTime}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Rightmost column: Standard outcome odds selectors and custom bet builder */}
+                          <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-center justify-end">
+                            <div className="flex items-center bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
+                              
+                              {/* Option 1: HOME */}
+                              <button
+                                onClick={() => onOddsSelect(game, "Resultado Final", "Casa", game.oddsHome)}
+                                className={`flex items-center justify-between gap-4 px-3 py-1.5 w-24 sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
+                                  isSelected(game.gameId, "Casa")
+                                    ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
+                                    : "bg-transparent border-transparent hover:bg-slate-900 text-slate-300 hover:text-white"
+                                }`}
+                              >
+                                <span className="text-[9px] text-slate-500 font-mono font-bold">1</span>
+                                <span className="font-mono text-xs font-black text-slate-200 group-hover:text-white">{game.oddsHome.toFixed(2)}</span>
+                              </button>
+
+                              {/* Option X: DRAW */}
+                              <button
+                                onClick={() => onOddsSelect(game, "Resultado Final", "Empate", game.oddsDraw)}
+                                className={`flex items-center justify-between gap-4 px-3 py-1.5 w-24 sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
+                                  isSelected(game.gameId, "Empate")
+                                    ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
+                                    : "bg-transparent border-transparent hover:bg-slate-900 text-slate-300 hover:text-white"
+                                }`}
+                              >
+                                <span className="text-[9px] text-slate-500 font-mono font-bold">X</span>
+                                <span className="font-mono text-xs font-black text-slate-200 group-hover:text-white">{game.oddsDraw.toFixed(2)}</span>
+                              </button>
+
+                              {/* Option 2: AWAY */}
+                              <button
+                                onClick={() => onOddsSelect(game, "Resultado Final", "Fora", game.oddsAway)}
+                                className={`flex items-center justify-between gap-4 px-3 py-1.5 w-24 sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
+                                  isSelected(game.gameId, "Fora")
+                                    ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
+                                    : "bg-transparent border-transparent hover:bg-slate-900 text-slate-300 hover:text-white"
+                                }`}
+                              >
+                                <span className="text-[9px] text-slate-500 font-mono font-bold">2</span>
+                                <span className="font-mono text-xs font-black text-slate-200 group-hover:text-white">{game.oddsAway.toFixed(2)}</span>
+                              </button>
+
+                            </div>
+
+                            {/* Bet Builder toggle action */}
+                            <button
+                              title="Criar aposta múltipla para este jogo"
+                              onClick={() => onOpenBetBuilder(game)}
+                              className="h-[44px] w-[44px] flex items-center justify-center rounded-xl bg-[#0F172A] border border-blue-900/30 text-blue-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-950/20 transition duration-150 cursor-pointer"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+
+
               </div>
             );
           })}
