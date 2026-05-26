@@ -1,0 +1,225 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with role, balance, and account status",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "usuario", "cambista"] },
+        "balance": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "blocked"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "email", "role", "balance", "status"]
+    },
+    "Bet": {
+      "title": "Bet Slip",
+      "description": "A single, multiple, or bet builder wager made by a user or cambista",
+      "type": "object",
+      "properties": {
+        "betId": { "type": "string" },
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "cambistaId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "won", "lost", "cancelled"] },
+        "stake": { "type": "number" },
+        "odds": { "type": "number" },
+        "potentialPayout": { "type": "number" },
+        "type": { "type": "string", "enum": ["simple", "multiple", "builder"] },
+        "selections": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["betId", "userId", "status", "stake", "odds", "potentialPayout", "type", "selections"]
+    },
+    "Game": {
+      "title": "Sport Match",
+      "description": "Cache for soccer matches with odds metadata and overrides",
+      "type": "object",
+      "properties": {
+        "gameId": { "type": "string" },
+        "homeTeam": { "type": "string" },
+        "awayTeam": { "type": "string" },
+        "homeLogo": { "type": "string" },
+        "awayLogo": { "type": "string" },
+        "league": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string" },
+        "scoreHome": { "type": "number" },
+        "scoreAway": { "type": "number" },
+        "oddsHome": { "type": "number" },
+        "oddsDraw": { "type": "number" },
+        "oddsAway": { "type": "number" },
+        "manualOdds": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["gameId", "homeTeam", "awayTeam", "league", "date", "status"]
+    },
+    "LiveMatch": {
+      "title": "Live Sports Match",
+      "description": "Match active right now with real-time stats including corners, cards, time, and goals",
+      "type": "object",
+      "properties": {
+        "gameId": { "type": "string" },
+        "homeTeam": { "type": "string" },
+        "awayTeam": { "type": "string" },
+        "homeLogo": { "type": "string" },
+        "awayLogo": { "type": "string" },
+        "league": { "type": "string" },
+        "scoreHome": { "type": "number" },
+        "scoreAway": { "type": "number" },
+        "minute": { "type": "number" },
+        "homeCards": { "type": "object" },
+        "awayCards": { "type": "object" },
+        "homeCorners": { "type": "number" },
+        "awayCorners": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["gameId", "homeTeam", "awayTeam", "league"]
+    },
+    "LeagueStanding": {
+      "title": "League Standings",
+      "description": "Championship ladder ranking position table cache",
+      "type": "object",
+      "properties": {
+        "leagueName": { "type": "string" },
+        "rows": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["leagueName", "rows", "updatedAt"]
+    },
+    "TeamDetail": {
+      "title": "Team Details Info",
+      "description": "Comprehensive info for active sports teams",
+      "type": "object",
+      "properties": {
+        "teamId": { "type": "string" },
+        "name": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "stadium": { "type": "string" },
+        "country": { "type": "string" },
+        "lastGames": { "type": "array" },
+        "nextGames": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["teamId", "name"]
+    },
+    "LeagueDetail": {
+      "title": "League Info",
+      "description": "Category item config for active championships",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "region": { "type": "string" },
+        "flag": { "type": "string" }
+      },
+      "required": ["code", "name"]
+    },
+    "MatchOdds": {
+      "title": "Match Odds",
+      "description": "Real-time or cached books price odds",
+      "type": "object",
+      "properties": {
+        "gameId": { "type": "string" },
+        "oddsHome": { "type": "number" },
+        "oddsDraw": { "type": "number" },
+        "oddsAway": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["gameId", "oddsHome", "oddsDraw", "oddsAway"]
+    },
+    "CacheControl": {
+      "title": "Cache Sync Control",
+      "description": "Realtime sports caching timestamps",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "lastSyncTime": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "lastSyncTime"]
+    },
+    "Cambista": {
+      "title": "Cambista Profile",
+      "description": "Cambista details including commission percentage",
+      "type": "object",
+      "properties": {
+        "cambistaId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "commission": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "blocked"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cambistaId", "name", "email", "commission", "status"]
+    },
+    "Settings": {
+      "title": "System Settings",
+      "description": "Football-data API keys and sport API configurations",
+      "type": "object",
+      "properties": {
+        "footballDataApiKey": { "type": "string" },
+        "oddsApiKey": { "type": "string" },
+        "apiFootballKey": { "type": "string" },
+        "theSportsDbKey": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles with roles and simulated wallet balance"
+    },
+    "bets/{betId}": {
+      "schema": "Bet",
+      "description": "Registered sport bet tickets"
+    },
+    "games/{gameId}": {
+      "schema": "Game",
+      "description": "Soccer matches listing and custom overridden odds (legacy support)"
+    },
+    "matches/{matchId}": {
+      "schema": "Game",
+      "description": "Live and upcoming soccer matches for today and tomorrow"
+    },
+    "live_matches/{matchId}": {
+      "schema": "LiveMatch",
+      "description": "Detailed realtime statistics of active football games"
+    },
+    "standings/{standingId}": {
+      "schema": "LeagueStanding",
+      "description": "Championship standing positions"
+    },
+    "teams/{teamId}": {
+      "schema": "TeamDetail",
+      "description": "Aggregated team-related summaries, stadium, and schedules"
+    },
+    "leagues/{leagueId}": {
+      "schema": "LeagueDetail",
+      "description": "List of supported primary sport leagues"
+    },
+    "odds/{oddsId}": {
+      "schema": "MatchOdds",
+      "description": "Cotes and bets evaluation ratios"
+    },
+    "cache_control/{cacheId}": {
+      "schema": "CacheControl",
+      "description": "Master cache timestamps and server diagnostic health logs"
+    },
+    "cambistas/{cambistaId}": {
+      "schema": "Cambista",
+      "description": "System-wide brokers accounts"
+    },
+    "settings/{settingsId}": {
+      "schema": "Settings",
+      "description": "Secure API configuration collection"
+    }
+  }
+}

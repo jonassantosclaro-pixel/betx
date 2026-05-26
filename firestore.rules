@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable global helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function getUserData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isUserRole(role) {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData(request.auth.uid).role == role;
+    }
+
+    function isAdmin() {
+      return isUserRole('admin') || (isSignedIn() && (request.auth.token.email == 'phbet@x.com' || request.auth.token.email == 'jonassantosclaro@gmail.com'));
+    }
+
+    function isCambista() {
+      return isUserRole('cambista');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. User Rules
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      
+      allow create: if isSignedIn() && request.auth.uid == userId && 
+        request.resource.data.userId == userId && 
+        request.resource.data.status == 'active' && 
+        request.resource.data.balance is number && 
+        request.resource.data.balance >= 0 &&
+        (
+          (request.auth.token.email == 'phbet@x.com' || request.auth.token.email == 'jonassantosclaro@gmail.com' ? 
+            request.resource.data.role == 'admin' : request.resource.data.role == 'usuario')
+        );
+
+      allow update: if isSignedIn() && (
+        // Admin can modify everything
+        isAdmin() || 
+        // User can only update their own non-sensitive fields or update balance when placing standard bets (usually balance change is decremented by stake)
+        (request.auth.uid == userId && 
+         request.resource.data.userId == resource.data.userId &&
+         request.resource.data.role == resource.data.role &&
+         request.resource.data.status == resource.data.status &&
+         request.resource.data.balance is number &&
+         request.resource.data.balance >= 0)
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // 2. Bets Rules
+    match /bets/{betId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.cambistaId == request.auth.uid || 
+        isAdmin()
+      );
+      
+      allow create: if isSignedIn() && 
+        isValidId(betId) &&
+        request.resource.data.betId == betId &&
+        request.resource.data.userId is string &&
+        request.resource.data.selections is list &&
+        request.resource.data.selections.size() > 0 &&
+        request.resource.data.selections.size() <= 8 &&
+        request.resource.data.stake is number &&
+        request.resource.data.stake > 0 &&
+        request.resource.data.odds is number &&
+        request.resource.data.potentialPayout is number &&
+        request.resource.data.status == 'pending' &&
+        (
+          // Placed by a cambista
+          (isCambista() && request.resource.data.cambistaId == request.auth.uid) ||
+          // Placed by standard user themselves
+          (request.resource.data.userId == request.auth.uid) ||
+          isAdmin()
+        );
+
+      allow update: if isAdmin(); // Only admins can resolve (won/lost) or cancel bets
+      allow delete: if isAdmin();
+    }
+
+    // 3. Games Rules (Legacy Support)
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if isAdmin(); // Only admins can manage / override odds or push games
+    }
+
+    // 4. Cambistas Rules
+    match /cambistas/{cambistaId} {
+      allow read: if isSignedIn() && (request.auth.uid == cambistaId || isAdmin());
+      allow write: if isAdmin(); // Only admins register and manage cambistas accounts
+    }
+
+    // 5. System Settings Rules
+    match /settings/{settingsId} {
+      allow read: if true; // Let server or front-end load state descriptors (safe masked structure only)
+      allow write: if isAdmin();
+    }
+
+    // 6. Realtime Matches
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 7. Live Matches
+    match /live_matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 8. Standings
+    match /standings/{standingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 9. Team Profiles
+    match /teams/{teamId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 10. Leagues Info
+    match /leagues/{leagueId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 11. Custom Odds Core
+    match /odds/{oddsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 12. Cache Timestamps / Control
+    match /cache_control/{cacheId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

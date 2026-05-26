@@ -1,0 +1,6 @@
+{
+  "name": "PH BET",
+  "description": "Plataforma de apostas esportivas premium inspirada na Vera Bet, com Bet Builder, painel administrativo, painel de cambistas e simulações com odds reais e editáveis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

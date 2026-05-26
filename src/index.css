@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;850&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Premium Immersive Royal Blue & White UI Palette */
+  --color-slate-950: #080D1A; /* Deepest Midnight Navy Blue */
+  --color-slate-900: #0F1A36; /* Clean deep blue cards background */
+  --color-slate-800: #1B2B54; /* Slate light navy highlight */
+  --color-slate-700: #29417E; /* Slate border blue */
+
+  /* Royal / Electric Blue Brand accents replacing purples */
+  --color-purple-950: #0B1426;
+  --color-purple-900: #1E40AF; /* Deep Royal Blue */
+  --color-purple-800: #2563EB; /* Premium Electric Cobalt */
+  --color-purple-705: #3B82F6; /* Bright royal */
+  --color-purple-700: #3B82F6; /* Fallback */
+  --color-purple-650: #2563EB; /* Primary layout accent */
+  
+  --color-emerald-500: #10B981;
+  --color-emerald-400: #34D399;
+  --color-amber-400: #FBBF24;
+}
+
+body {
+  background-color: #080D1A;
+  color: #F8FAFC;
+  font-family: var(--font-sans);
+}
+
+/* Global resets to align all custom hardcoded hex colors to extreme modern blue and white style */
+.bg-[#07040c], .bg-[#0c0813], .bg-slate-950, .bg-[#0F0F0F] {
+  background-color: #080D1A !important;
+}
+
+.bg-[#0d091a], .bg-[#0d091a]/95, .bg-[#0d091a]/90, .bg-[#141414], .bg-[#141414]/90 {
+  background-color: #0F1A36 !important;
+}
+
+.bg-[#120c22], .bg-[#120c22]/90, .bg-slate-900, .bg-slate-900/40, .bg-[#1A1A1A] {
+  background-color: #17274F !important;
+}
+
+.bg-slate-900\/45, .bg-slate-900\/40, .bg-slate-950\/70, .bg-slate-950\/80 {
+  background-color: #0F1A36 !important;
+}
+
+/* Force borders to match elegant electric-cobalt outlines instead of dull grey or purple */
+[class*="border-purple-500/20"], [class*="border-[#333]"], [class*="border-purple-"], [class*="border-[#1A1A1A]"], [class*="border-slate-850/40"] {
+  border-color: #29417E !important;
+}
+
+[class*="divide-purple-"] {
+  border-color: #29417E !important;
+  opacity: 0.9;
+}
+
+/* Override background colors of gradients to have pristine vibrant royal-blue colors */
+.bg-gradient-to-tr, .bg-gradient-to-r {
+  background-image: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%) !important;
+}
+
+/* Override pure red alerts or purples with modern high contrast blue badges */
+.text-[#7C3AED] {
+  color: #3B82F6 !important;
+}
+
+.bg-purple-950\/30 {
+  background-color: rgba(30, 64, 175, 0.25) !important;
+}
+
+.hover\:bg-purple-950\/30:hover {
+  background-color: rgba(30, 64, 175, 0.35) !important;
+}
+
+.text-purple-300 {
+  color: #D1D5DB !important;
+}
+
+.text-purple-400 {
+  color: #93C5FD !important;
+}
+
+/* Scrollbar matching the extreme royal-blue modern style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080D1A;
+}
+::-webkit-scrollbar-thumb {
+  background: #2563EB;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3B82F6;
+}
+
+/* Animated gradient background utilities */
+.purple-gradient-glow {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(8, 13, 26, 0) 100%) !important;
+  border: 1px solid #29417E !important;
+}
+
+.blue-glassmorphism {
+  background: rgba(15, 26, 54, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.emerald-pulse {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+.glow-btn:hover {
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 18s linear infinite;
+}
+.animate-spin-reverse {
+  animation: spin-reverse 12s linear infinite;
+}
+
