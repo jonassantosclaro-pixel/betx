@@ -31,7 +31,8 @@ import {
   RotateCcw,
   Sparkles,
   Settings,
-  X
+  X,
+  Percent
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -72,6 +73,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
   const [customOddX, setCustomOddX] = useState(3.00);
   const [customOdd2, setCustomOdd2] = useState(3.50);
   const [oddsOverrideStatus, setOddsOverrideStatus] = useState<string | null>(null);
+  
+  // Odds percentage
+  const [globalOddsPercentage, setGlobalOddsPercentage] = useState(0);
 
   // Temp editing odds states
   const [editingOddsId, setEditingOddsId] = useState<string | null>(null);
@@ -110,6 +114,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
 
   // Load cambistas configuration with live sync
   useEffect(() => {
+    // Load global settings
+    const settingDoc = doc(db, "settings", "global");
+    onSnapshot(settingDoc, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data();
+            if (data.oddsPercentage !== undefined) {
+                setGlobalOddsPercentage(data.oddsPercentage);
+            }
+        }
+    });
+
     setLoadingCambistas(true);
     const colRef = collection(db, "cambistas");
     
@@ -136,6 +151,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
 
   // Inline odds override submitter
   const submitOddsOverride = async (gameId: string) => {
+    let apiSuccess = false;
     try {
       const response = await fetch("/api/games/override", {
         method: "POST",
@@ -149,15 +165,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
       });
 
       if (response.ok) {
-        setOddsOverrideStatus("Cotas atualizadas e sincronizadas com sucesso!");
+        apiSuccess = true;
+      }
+    } catch (e) {
+      console.warn("Could not reach backend API for odds override, falling back to direct Firestore write");
+    }
+
+    try {
+      // Direct Firestore write fallback
+      const matchToUpdate = games.find((g) => g.gameId === gameId);
+      if (matchToUpdate) {
+        const uGame = {
+          ...matchToUpdate,
+          oddsHome: Number(tempOdd1),
+          oddsDraw: Number(tempOddX),
+          oddsAway: Number(tempOdd2),
+          updatedAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, "matches", gameId), uGame, { merge: true });
+        await setDoc(doc(db, "odds", gameId), {
+          gameId,
+          oddsHome: Number(tempOdd1),
+          oddsDraw: Number(tempOddX),
+          oddsAway: Number(tempOdd2),
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+
+      setOddsOverrideStatus("Cotas atualizadas e sincronizadas com sucesso!");
+      setEditingOddsId(null);
+      onRefreshGames();
+      setTimeout(() => setOddsOverrideStatus(null), 3000);
+    } catch (fsErr) {
+      console.error("Firestore override write failed:", fsErr);
+      if (apiSuccess) {
+        setOddsOverrideStatus("Cotas atualizadas localmente!");
         setEditingOddsId(null);
         onRefreshGames();
         setTimeout(() => setOddsOverrideStatus(null), 3000);
       } else {
-        alert("Erro ao reportar cotação.");
+        alert("Erro ao reportar cotação no Firestore. Verifique se está logado como admin!");
       }
-    } catch (e) {
-      alert("Erro ao comunicar com o gateway Express.");
     }
   };
 
@@ -188,6 +236,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
       updatedAt: new Date().toISOString()
     };
 
+    let apiSuccess = false;
     try {
       const response = await fetch("/api/games", {
         method: "POST",
@@ -196,17 +245,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
       });
 
       if (response.ok) {
+        apiSuccess = true;
+      }
+    } catch (e) {
+      console.warn("Express backend API unreachable, falling back to direct Firestore write for custom match");
+    }
+
+    try {
+      // Direct Firestore sync
+      await setDoc(doc(db, "matches", createdMatchId), customMatchObj);
+      await setDoc(doc(db, "odds", createdMatchId), {
+        gameId: createdMatchId,
+        oddsHome: customMatchObj.oddsHome,
+        oddsDraw: customMatchObj.oddsDraw,
+        oddsAway: customMatchObj.oddsAway,
+        updatedAt: new Date().toISOString()
+      });
+
+      setOddsOverrideStatus("Partida customizada publicada com Sucesso!");
+      setCustomHome("");
+      setCustomAway("");
+      onRefreshGames();
+      setTimeout(() => setOddsOverrideStatus(null), 3500);
+    } catch (fsErr) {
+      console.error("Firestore custom match write failed:", fsErr);
+      if (apiSuccess) {
         setOddsOverrideStatus("Partida customizada publicada com Sucesso!");
         setCustomHome("");
         setCustomAway("");
         onRefreshGames();
         setTimeout(() => setOddsOverrideStatus(null), 3500);
       } else {
-        alert("Erro de inserção da partida no barramento.");
+        alert("Erro ao publicar partida no Firestore. Verifique se está logado como admin!");
       }
-    } catch (e) {
-      console.error(e);
-      alert("Falha de conexão.");
     }
   };
 
@@ -324,6 +395,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
     }
   };
 
+  // Toggle league active status (disabled: true/false)
+  const handleToggleLeagueActive = async (code: string, name: string, currentDisabled: boolean) => {
+    try {
+      await setDoc(doc(db, "leagues", code), { disabled: !currentDisabled }, { merge: true });
+      const nextStateText = !currentDisabled ? "Desativado" : "Ativado";
+      setOddsOverrideStatus(`Campeonato "${name}" ${nextStateText} com sucesso!`);
+      setTimeout(() => setOddsOverrideStatus(null), 3500);
+    } catch (e) {
+      console.error("Firebase toggle league status err", code, e);
+      alert("Erro ao alterar o status do campeonato.");
+    }
+  };
+
   // Delete a league from Firestore to hide it from general sidebar
   const handleDeleteLeague = async (code: string, name: string) => {
     if (!confirm(`Deseja realmente excluir em definitivo o campeonato "${name}"? Esta ação removerá o campeonato da de listagem do menu.`)) return;
@@ -428,16 +512,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
       {/* RENDER DYNAMIC SUB TAB CONTEXTS */}
 
       {activeSubTab === "ODDS" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
-          
-          {/* List of games for inline odds calibration */}
-          <div className="lg:col-span-7 bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3.5 border-b border-blue-900/30 select-none">
-              <h3 className="text-xs font-mono font-black text-white uppercase tracking-wider">Ajuste de Odds em Tempo Real</h3>
-              <span className="text-[10px] text-slate-400 font-mono font-bold bg-[#080D1A] border border-blue-900/30 px-2 py-0.5 rounded-lg">
-                Partidas Ativas: {games.length}
-              </span>
-            </div>
+        <div className="space-y-6">
+          {/* Global Odds Adjustment section */}
+          <div className="bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5">
+             <div className="flex items-center gap-2 pb-3 mb-4 border-b border-blue-900/30">
+               <Percent className="h-5 w-5 text-blue-400" />
+               <h3 className="text-xs font-mono font-black text-white uppercase tracking-wider">Ajuste Geral de Odds (%)</h3>
+             </div>
+             <div className="flex items-center gap-4">
+                <input 
+                  type="number"
+                  value={globalOddsPercentage}
+                  onChange={(e) => setGlobalOddsPercentage(Number(e.target.value))}
+                  className="w-24 bg-[#080D1A] border border-blue-900/35 p-2 rounded-xl text-white outline-none font-mono font-bold text-center"
+                />
+                <button
+                  onClick={() => {
+                    // Save to Firestore
+                    setDoc(doc(db, "settings", "global"), { oddsPercentage: globalOddsPercentage }, { merge: true });
+                    setOddsOverrideStatus(`Percentual de odds atualizado para ${globalOddsPercentage}%`);
+                    setTimeout(() => setOddsOverrideStatus(null), 3000);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition"
+                >
+                  Salvar Percentual
+                </button>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
+            {/* List of games for inline odds calibration */}
+            <div className="lg:col-span-7 bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 space-y-4">
+              <div className="flex items-center justify-between pb-3.5 border-b border-blue-900/30 select-none">
+                <h3 className="text-xs font-mono font-black text-white uppercase tracking-wider">Ajuste de Odds em Tempo Real</h3>
+                <span className="text-[10px] text-slate-400 font-mono font-bold bg-[#080D1A] border border-blue-900/30 px-2 py-0.5 rounded-lg">
+                  Partidas Ativas: {games.length}
+                </span>
+              </div>
 
             <div className="space-y-3.5 max-h-[500px] overflow-y-auto pr-1">
               {games.length === 0 ? (
@@ -544,110 +655,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
               )}
             </div>
           </div>
-
-          {/* Form to insert custom manual pre-match game */}
-          <form onSubmit={handleCreateCustomMatch} className="lg:col-span-5 bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 space-y-4">
-            <div className="flex items-center gap-1.5 pb-3 border-b border-blue-900/30 select-none">
-              <PlusCircle className="h-5 w-5 text-blue-400" />
-              <h3 className="text-xs font-mono font-black text-white uppercase tracking-wider">Lançar Partida Manual</h3>
-            </div>
-
-            <div className="space-y-4 text-xs font-sans">
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Campeonato / Categoria</label>
-                <select 
-                  value={customLeague} 
-                  onChange={(e) => setCustomLeague(e.target.value)}
-                  className="w-full text-xs font-semibold bg-[#080D1A] border border-blue-900/35 p-2 rounded-xl text-white outline-none"
-                >
-                  <option value="Brasileirão Série A">Brasileirão Série A</option>
-                  <option value="Brasileirão Série B">Brasileirão Série B</option>
-                  <option value="Champions League">Champions League</option>
-                  <option value="Copa Libertadores">Copa Libertadores</option>
-                  <option value="Copa Sul-Americana">Copa Sul-Americana</option>
-                  <option value="Premier League">Premier League</option>
-                  <option value="La Liga">La Liga</option>
-                  <option value="Copa do Mundo">Copa do Mundo</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Equipe Mandante (Casa)</label>
-                <input 
-                  type="text" 
-                  value={customHome} 
-                  onChange={(e) => setCustomHome(e.target.value)} 
-                  placeholder="Ex: Flamengo"
-                  className="w-full text-xs bg-[#080D1A] border border-blue-900/35 p-2 rounded-xl text-white outline-none"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Equipe Visitante (Fora)</label>
-                <input 
-                  type="text" 
-                  value={customAway} 
-                  onChange={(e) => setCustomAway(e.target.value)} 
-                  placeholder="Ex: Vasco"
-                  className="w-full text-xs bg-[#080D1A] border border-blue-900/35 p-2 rounded-xl text-white outline-none"
-                />
-              </div>
-
-              {/* Grid odds manual */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1 text-left">
-                  <label className="text-[9px] font-mono text-slate-400 block pl-1">ODD CASA</label>
-                  <input 
-                    type="number" 
-                    step="0.05" 
-                    value={customOdd1} 
-                    onChange={(e) => setCustomOdd1(Number(e.target.value))}
-                    className="w-full text-xs text-center font-mono font-bold bg-[#080D1A] border border-blue-900/35 p-1.5 rounded-lg text-white"
-                  />
-                </div>
-
-                <div className="space-y-1 text-left">
-                  <label className="text-[9px] font-mono text-slate-400 block pl-1">ODD EMPATE</label>
-                  <input 
-                    type="number" 
-                    step="0.05" 
-                    value={customOddX} 
-                    onChange={(e) => setCustomOddX(Number(e.target.value))}
-                    className="w-full text-xs text-center font-mono font-bold bg-[#080D1A] border border-blue-900/35 p-1.5 rounded-lg text-white"
-                  />
-                </div>
-
-                <div className="space-y-1 text-left">
-                  <label className="text-[9px] font-mono text-slate-400 block pl-1">ODD FORA</label>
-                  <input 
-                    type="number" 
-                    step="0.05" 
-                    value={customOdd2} 
-                    onChange={(e) => setCustomOdd2(Number(e.target.value))}
-                    className="w-full text-xs text-center font-mono font-bold bg-[#080D1A] border border-blue-900/35 p-1.5 rounded-lg text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Data e Hora de Lançamento</label>
-                <input 
-                  type="datetime-local" 
-                  value={customDate} 
-                  onChange={(e) => setCustomDate(e.target.value)} 
-                  className="w-full text-xs bg-[#080D1A] border border-blue-900/35 p-2 rounded-xl text-white outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black tracking-widest font-display text-xs uppercase rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg border border-blue-500"
-              >
-                <Play className="h-4 w-4" />
-                Lançar Partida Ativa
-              </button>
-            </div>
-          </form>
+        </div>
         </div>
       )}
 
@@ -975,29 +983,73 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, l
                       Nenhum campeonato ativo no momento ou carregando...
                     </div>
                   ) : (
-                    leagues.map((lg) => (
-                      <div 
-                        key={lg.code} 
-                        className="p-3.5 bg-[#080D1A]/50 hover:bg-[#080D1A]/85 border border-blue-900/20 rounded-xl flex items-center justify-between gap-4 transition"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl select-none">{lg.flag}</span>
-                          <div>
-                            <span className="font-display font-black text-white text-xs block">{lg.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono font-bold">{lg.region} • {lg.code}</span>
+                    leagues.map((lg, idx) => {
+                      const isCurrentlyDisabled = lg.disabled === true;
+                      return (
+                        <div 
+                          key={`${lg.code}-${lg.name}-${idx}`} 
+                          className={`p-3.5 border rounded-xl flex items-center justify-between gap-4 transition ${
+                            isCurrentlyDisabled 
+                              ? "bg-slate-950/45 border-red-900/10 opacity-70" 
+                              : "bg-[#080D1A]/50 hover:bg-[#080D1A]/85 border-blue-900/20"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl select-none">{lg.flag}</span>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-display font-black text-white text-xs block">{lg.name}</span>
+                                {isCurrentlyDisabled ? (
+                                  <span className="px-1.5 py-0.5 text-[8px] font-mono font-bold bg-red-950/40 border border-red-500/25 text-red-400 rounded">
+                                    DESATIVADO
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 text-[8px] font-mono font-bold bg-emerald-950/40 border border-emerald-500/25 text-emerald-400 rounded">
+                                    ATIVO
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono font-bold">{lg.region} • {lg.code}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Toggle Activation Button */}
+                            <button
+                              onClick={() => handleToggleLeagueActive(lg.code, lg.name, isCurrentlyDisabled)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer border ${
+                                isCurrentlyDisabled
+                                  ? "bg-emerald-950/30 hover:bg-emerald-650 hover:text-white border-emerald-500/25 text-emerald-450 hover:border-emerald-500"
+                                  : "bg-amber-950/30 hover:bg-amber-600 hover:text-white border-amber-500/25 text-amber-500 hover:border-amber-500"
+                              }`}
+                              title={isCurrentlyDisabled ? "Ativar Campeonato" : "Desativar Campeonato"}
+                            >
+                              {isCurrentlyDisabled ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>Ativar</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Ban className="h-3.5 w-3.5" />
+                                  <span>Desativar</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => handleDeleteLeague(lg.code, lg.name)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/30 hover:bg-red-650 hover:text-white border border-red-500/25 text-red-400 rounded-lg text-xs font-black transition cursor-pointer"
+                              title="Excluir Campeonato de forma definitiva"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Excluir</span>
+                            </button>
                           </div>
                         </div>
-
-                        <button
-                          onClick={() => handleDeleteLeague(lg.code, lg.name)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/30 hover:bg-red-600 hover:text-white border border-red-500/25 text-red-400 rounded-lg text-xs font-black transition cursor-pointer"
-                          title="Excluir Campeonato de forma definitiva"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Excluir</span>
-                        </button>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

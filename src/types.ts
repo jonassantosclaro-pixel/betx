@@ -127,6 +127,7 @@ export interface LeagueDetail {
   name: string;
   region: string;
   flag: string;
+  disabled?: boolean;
 }
 
 export interface AppConfig {

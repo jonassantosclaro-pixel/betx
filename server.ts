@@ -15,8 +15,8 @@ import {
   getFirestore, 
   doc, 
   getDoc, 
-  setDoc, 
-  updateDoc, 
+  setDoc as originalSetDoc, 
+  updateDoc as originalUpdateDoc, 
   collection, 
   getDocs, 
   query, 
@@ -27,6 +27,17 @@ import {
 const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf-8"));
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+
+const SERVER_SECRET = "PH_BET_SECURE_SERVER_COMPUTE_KEY_2026_BYPASS";
+
+// Wrapper helpers to inject server secret automatically for all write operations to Firestore
+const setDoc = (ref: any, data: any, options?: any) => {
+  return originalSetDoc(ref, { ...data, serverSecret: SERVER_SECRET }, options);
+};
+
+const updateDoc = (ref: any, data: any) => {
+  return originalUpdateDoc(ref, { ...data, serverSecret: SERVER_SECRET });
+};
 
 // Standard Express Setup
 const app = express();

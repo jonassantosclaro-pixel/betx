@@ -56,7 +56,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ selectedLeague, onSele
     { name: "Amistosos de Seleções", code: "INT", region: "Amistosos", flag: "🤝" }
   ];
 
-  const leagues = customLeagues && customLeagues.length > 0 ? customLeagues : defaultLeagues;
+  const leagues = (customLeagues && customLeagues.length > 0 ? customLeagues : defaultLeagues).filter(lg => !lg.disabled);
 
   return (
     <>
@@ -94,11 +94,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ selectedLeague, onSele
             </div>
 
             <div className="flex flex-col gap-1 pr-1">
-              {leagues.map((lg) => {
+              {leagues.map((lg, idx) => {
                 const isSelected = selectedLeague === lg.name;
                 return (
                   <button
-                    key={lg.code}
+                    key={`${lg.code}-${lg.name}-${idx}`}
                     onClick={() => onSelectLeague(lg.name)}
                     className={`group w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition text-left border ${
                       isSelected
@@ -154,11 +154,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ selectedLeague, onSele
         </button>
 
         {/* Individual leagues as neat horizontal pills */}
-        {leagues.map((lg) => {
+        {leagues.map((lg, idx) => {
           const isSelected = selectedLeague === lg.name;
           return (
             <button
-              key={lg.code}
+              key={`${lg.code}-${lg.name}-${idx}`}
               onClick={() => onSelectLeague(lg.name)}
               className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-xs font-bold transition whitespace-nowrap shrink-0 border ${
                 isSelected

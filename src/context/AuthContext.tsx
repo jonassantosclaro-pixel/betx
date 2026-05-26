@@ -105,21 +105,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginCustom = async (emailOrUsername: string, pass: string) => {
     let finalEmail = emailOrUsername.trim();
     if (!finalEmail.includes("@")) {
-      // Resolution via server API endpoint
-      const response = await fetch("/api/auth/get-user-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loginIdentifier: emailOrUsername })
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.error || "Identificador de login (Nome ou Telefone) não localizado!");
+      try {
+        // Resolution via server API endpoint
+        const response = await fetch("/api/auth/get-user-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loginIdentifier: emailOrUsername })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.email) {
+            finalEmail = data.email;
+          }
+        } else {
+          // Calculate deterministic email directly client-side
+          const phoneClean = emailOrUsername.replace(/\D/g, "");
+          finalEmail = `${phoneClean ? phoneClean : emailOrUsername.toLowerCase().replace(/[^a-z0-9]/g, "")}@phbet.com`;
+        }
+      } catch (err) {
+        // Calculate deterministic email directly client-side on network fail/Vercel
+        const phoneClean = emailOrUsername.replace(/\D/g, "");
+        finalEmail = `${phoneClean ? phoneClean : emailOrUsername.toLowerCase().replace(/[^a-z0-9]/g, "")}@phbet.com`;
       }
-      const data = await response.json();
-      if (!data.email) {
-        throw new Error("Falha ao recuperar e-mail do operador.");
-      }
-      finalEmail = data.email;
     }
     await signInWithEmailAndPassword(auth, finalEmail, pass);
   };

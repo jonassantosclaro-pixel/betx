@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react";
 import { Trophy, Shield, TrendingUp, Search, RefreshCw } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
-import { StandingRow, LeagueStanding } from "../types";
+import { StandingRow, LeagueStanding, LeagueDetail } from "../types";
 
 // Static local fallbacks for high-performance instant loading
 const defaultStandingsData: Record<string, StandingRow[]> = {
@@ -63,12 +63,24 @@ const CHAMPIONSHIPS = [
 
 interface ClassificacaoViewProps {
   onSelectTeam: (teamName: string) => void;
+  leagues?: LeagueDetail[];
 }
 
-export const ClassificacaoView: React.FC<ClassificacaoViewProps> = ({ onSelectTeam }) => {
+export const ClassificacaoView: React.FC<ClassificacaoViewProps> = ({ onSelectTeam, leagues }) => {
+  const activeChampionships = leagues 
+    ? CHAMPIONSHIPS.filter(c => !leagues.some(l => l.name === c && l.disabled))
+    : CHAMPIONSHIPS;
+
   const [selectedLeague, setSelectedLeague] = useState<string>("Brasileirão Série A");
   const [rows, setRows] = useState<StandingRow[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Keep selectedLeague in sync if active ones change or current becomes disabled
+  useEffect(() => {
+    if (activeChampionships.length > 0 && !activeChampionships.includes(selectedLeague)) {
+      setSelectedLeague(activeChampionships[0]);
+    }
+  }, [activeChampionships, selectedLeague]);
 
   // Normalize name for Firestore doc paths (matches back-end normalizer)
   const docId = selectedLeague.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "-");
@@ -129,7 +141,7 @@ export const ClassificacaoView: React.FC<ClassificacaoViewProps> = ({ onSelectTe
             onChange={(e) => setSelectedLeague(e.target.value)}
             className="w-full text-xs font-bold bg-slate-950 text-white p-3 rounded-xl border border-slate-800 outline-none focus:border-blue-500 transition cursor-pointer"
           >
-            {CHAMPIONSHIPS.map((league) => (
+            {activeChampionships.map((league) => (
               <option key={league} value={league}>
                 🏆 {league}
               </option>

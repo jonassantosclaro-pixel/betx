@@ -14,7 +14,7 @@ import { UserPanel } from "./components/UserPanel";
 import { CambistaPanel } from "./components/CambistaPanel";
 import { AdminPanel } from "./components/AdminPanel";
 import { Game, BetSelection, OperationType, LeagueDetail } from "./types";
-import { doc, setDoc, collection, onSnapshot, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, collection, onSnapshot, deleteDoc, getDocs } from "firebase/firestore";
 import { db, handleFirestoreError } from "./firebase";
 import { ClassificacaoView } from "./components/ClassificacaoView";
 import { TeamDetailsView } from "./components/TeamDetailsView";
@@ -242,7 +242,7 @@ const AppContent: React.FC = () => {
   const [builderGame, setBuilderGame] = useState<Game | null>(null);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
 
-  // Load sports fixtures from Express unified backend proxy
+  // Load sports fixtures from Express unified backend proxy with direct Firestore fallback
   const loadActiveGames = async () => {
     try {
       setLoadingGames(true);
@@ -250,11 +250,44 @@ const AppContent: React.FC = () => {
       if (res.ok) {
         const list = await res.json();
         setGames(list);
+      } else {
+        await fallbackLoadGamesFromFirestore();
       }
     } catch (e) {
-      console.error("Express backend game listings load failed", e);
+      console.warn("Express backend game listings load failed. Reverting to direct Firestore fallback...", e);
+      await fallbackLoadGamesFromFirestore();
     } finally {
       setLoadingGames(false);
+    }
+  };
+
+  const fallbackLoadGamesFromFirestore = async () => {
+    try {
+      const matchesCol = collection(db, "matches");
+      const snap = await getDocs(matchesCol);
+      const list: Game[] = [];
+      snap.forEach((docSnap) => {
+        list.push({ ...docSnap.data() } as Game);
+      });
+
+      // Filter matches to Today and Tomorrow only to mirror server-side worker
+      const tLower = new Date();
+      tLower.setHours(0,0,0,0);
+      const tUpper = new Date();
+      tUpper.setDate(tUpper.getDate() + 2);
+      tUpper.setHours(23,59,59,999);
+
+      const filtered = list.filter(game => {
+        const gd = new Date(game.date);
+        return gd >= tLower && gd <= tUpper;
+      });
+
+      // Sort chronological
+      filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      setGames(filtered);
+    } catch (err) {
+      console.error("Direct Firestore load failed:", err);
     }
   };
 
@@ -500,7 +533,7 @@ const AppContent: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0">
           {activeView === "FEED" && (
             <HomeMain 
-              games={games}
+              games={games.filter(g => !leagues.some(l => l.name === g.league && l.disabled))}
               loading={loadingGames}
               selectedLeague={selectedLeague}
               onOddsSelect={handleSelectOdd}
@@ -511,6 +544,7 @@ const AppContent: React.FC = () => {
 
           {activeView === "CLASSIFICACAO" && (
             <ClassificacaoView 
+              leagues={leagues}
               onSelectTeam={(name) => {
                 setSelectedTeamName(name);
                 setActiveView("TEAM_DETAILS");
