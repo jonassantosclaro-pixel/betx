@@ -102,8 +102,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await registerUserProfile(cred.user.uid, name, email, role);
   };
 
-  const loginCustom = async (email: string, pass: string) => {
-    await signInWithEmailAndPassword(auth, email, pass);
+  const loginCustom = async (emailOrUsername: string, pass: string) => {
+    let finalEmail = emailOrUsername.trim();
+    if (!finalEmail.includes("@")) {
+      // Resolution via server API endpoint
+      const response = await fetch("/api/auth/get-user-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginIdentifier: emailOrUsername })
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.error || "Identificador de login (Nome ou Telefone) não localizado!");
+      }
+      const data = await response.json();
+      if (!data.email) {
+        throw new Error("Falha ao recuperar e-mail do operador.");
+      }
+      finalEmail = data.email;
+    }
+    await signInWithEmailAndPassword(auth, finalEmail, pass);
   };
 
   const logout = async () => {

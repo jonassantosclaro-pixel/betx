@@ -11,6 +11,8 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   balance: number;
+  limit?: number;
+  phoneNumber?: string;
   status: "active" | "blocked";
   createdAt: string;
   updatedAt: string;
@@ -67,6 +69,8 @@ export interface CambistaProfile {
   status: "active" | "blocked";
   createdBy: string;
   createdAt: string;
+  limit?: number;
+  phoneNumber?: string;
 }
 
 export interface LiveMatchStats {
@@ -116,6 +120,13 @@ export interface TeamDetail {
   lastGames: { opponent: string; score: string; date: string; isHome: boolean; result: "W" | "D" | "L" }[];
   nextGames: { opponent: string; date: string; isHome: boolean }[];
   updatedAt: string;
+}
+
+export interface LeagueDetail {
+  code: string;
+  name: string;
+  region: string;
+  flag: string;
 }
 
 export interface AppConfig {

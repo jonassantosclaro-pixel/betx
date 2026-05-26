@@ -71,46 +71,48 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header id="ph-header" className="sticky top-0 z-40 w-full border-b border-blue-900/40 bg-[#0F172A] backdrop-blur-md px-4 py-3 flex items-center justify-between">
+      <header id="ph-header" className="sticky top-0 z-40 w-full border-b border-blue-900/40 bg-[#0F172A]/90 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
         {/* Left Side: Brand Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.location.reload()}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => window.location.reload()}>
             <img 
               src="https://i.postimg.cc/k4Wszn56/Chat-GPT-Image-26-de-mai-de-2026-13-03-24.png" 
               alt="PH BET" 
               referrerPolicy="no-referrer"
-              className="h-12 w-auto object-contain filter drop-shadow-[0_0_8px_rgba(59,130,246,0.25)]"
+              className="h-8 sm:h-12 w-auto object-contain filter drop-shadow-[0_0_8px_rgba(59,130,246,0.25)]"
             />
           </div>
         </div>
 
         {/* Right Side: Account Actions, Balance, and Role Badges */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {userProfile ? (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2.5">
               {/* Balance Card */}
-              <div id="balance-display" className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-blue-950/40 border border-blue-800/40 max-w-[150px] md:max-w-none">
-                <div className="p-1 rounded-lg bg-blue-500/20 text-blue-400">
-                  <Wallet className="h-4 w-4" />
+              <div id="balance-display" className="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-blue-950/40 border border-blue-800/40 max-w-[120px] sm:max-w-none">
+                <div className="p-0.5 sm:p-1 rounded-lg bg-blue-500/20 text-blue-400">
+                  <Wallet className="h-3 sm:h-4 w-3 sm:w-4" />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-[10px] text-blue-300 uppercase tracking-widest font-mono leading-none">Minha Banca</span>
-                  <span className="text-sm font-mono font-bold text-white mt-0.5">
+                  <span className="hidden sm:inline text-[9px] text-blue-300 uppercase tracking-widest font-mono leading-none">Minha Banca</span>
+                  <span className="text-xs sm:text-sm font-mono font-bold text-white mt-0.5 whitespace-nowrap">
                     R$ {userProfile.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
 
-              {/* Active Role Badge (Clean display only, switcher is removed) */}
-              <div id="role-badge" className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${getRoleLabelAndColor(userProfile.role).bg}`}>
+              {/* Active Role Badge */}
+              <div id="role-badge" className={`flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] sm:text-xs font-bold ${getRoleLabelAndColor(userProfile.role).bg}`}>
                 {userProfile.role === "admin" ? (
-                  <Shield className="h-3.5 w-3.5 text-blue-400" />
+                  <Shield className="h-3 w-3 text-blue-400" />
                 ) : userProfile.role === "cambista" ? (
-                  <Briefcase className="h-3.5 w-3.5 text-sky-450" />
+                  <Briefcase className="h-3 w-3 text-sky-400" />
                 ) : (
-                  <User className="h-3.5 w-3.5 text-white" />
+                  <User className="h-3 w-3 text-white" />
                 )}
-                <span className="hidden sm:inline">{getRoleLabelAndColor(userProfile.role).label}</span>
+                <span className="hidden xs:inline sm:inline">
+                  {userProfile.role === "admin" ? "Admin" : userProfile.role === "cambista" ? "Cambista" : "Cliente"}
+                </span>
               </div>
 
               {/* Logout Button */}
@@ -118,21 +120,21 @@ export const Header: React.FC = () => {
                 id="logout-btn"
                 onClick={logout}
                 title="Sair da Conta"
-                className="p-2 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition active:scale-95 cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition active:scale-95 cursor-pointer"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {/* Ultra modern Login portal button */}
               <button
                 id="btn-login-trigger"
                 onClick={() => { setShowLoginModal(true); setIsRegisterMode(false); }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 active:translate-y-0.5 transition cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 active:translate-y-0.5 transition cursor-pointer whitespace-nowrap"
               >
-                <Lock className="h-3.5 w-3.5" />
-                Acessar Conta / Painéis
+                <Lock className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                Entrar / Painel
               </button>
             </div>
           )}
@@ -179,16 +181,16 @@ export const Header: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black mb-1.5">
-                  Endereço de E-mail
+                <label className="block text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black mb-1.5 font-bold">
+                  Identificador de Acesso (Nome, Fone ou Email)
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="Seu email de login"
-                  className="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Seu nome, fone ou email"
+                  className="w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-sans"
                 />
               </div>
 

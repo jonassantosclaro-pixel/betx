@@ -74,8 +74,10 @@ export const BetSlip: React.FC<BetSlipProps> = ({
         return;
       }
     } else {
-      if (userProfile.role !== "cambista" && userProfile.balance < stake) {
-        setErrorText("Saldo insuficiente na sua banca para realizar esta aposta!");
+      if (userProfile.balance < stake) {
+        setErrorText(userProfile.role === "cambista" 
+          ? `Limite de crédito insuficiente para registrar este bilhete! Limite restante: R$ ${userProfile.balance.toFixed(2)}`
+          : "Saldo insuficiente na sua banca para realizar esta aposta!");
         return;
       }
 

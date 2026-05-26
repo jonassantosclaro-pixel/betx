@@ -23,16 +23,77 @@ export const TeamDetailsView: React.FC<TeamDetailsViewProps> = ({ teamName, onBa
 
   // Logo URL resolver (matching server)
   const getLogo = (name: string) => {
-    const b = name.toLowerCase();
-    if (b.includes("flamengo")) return "https://images.thesportsdb.com/images/media/team/badge/7vyv971550232585.png/tiny";
-    if (b.includes("palmeiras")) return "https://images.thesportsdb.com/images/media/team/badge/8qwvwv1550232607.png/tiny";
-    if (b.includes("sao paulo")) return "https://images.thesportsdb.com/images/media/team/badge/qtpssy1550232646.png/tiny";
-    if (b.includes("corinthians")) return "https://images.thesportsdb.com/images/media/team/badge/uqpwws1550232617.png/tiny";
-    if (b.includes("botafogo")) return "https://images.thesportsdb.com/images/media/team/badge/vwpwyq1421494553.png/tiny";
-    if (b.includes("santos")) return "https://images.thesportsdb.com/images/media/team/badge/puvvty1550232637.png/tiny";
-    if (b.includes("real madrid")) return "https://images.thesportsdb.com/images/media/team/badge/vwpvuv1421493796.png/tiny";
-    if (b.includes("barcelona")) return "https://images.thesportsdb.com/images/media/team/badge/0g80781521453229.png/tiny";
-    if (b.includes("manchester city")) return "https://images.thesportsdb.com/images/media/team/badge/vtsv701511477755.png/tiny";
+    const b = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (b.includes("flamengo")) return "https://images.thesportsdb.com/images/media/team/badge/7vyv971550232585.png";
+    if (b.includes("palmeiras")) return "https://images.thesportsdb.com/images/media/team/badge/8qwvwv1550232607.png";
+    if (b.includes("corinthians")) return "https://images.thesportsdb.com/images/media/team/badge/uqpwws1550232617.png";
+    if (b.includes("sao paulo") || b.includes("são paulo")) return "https://images.thesportsdb.com/images/media/team/badge/qtpssy1550232646.png";
+    if (b.includes("santos")) return "https://images.thesportsdb.com/images/media/team/badge/puvvty1550232637.png";
+    if (b.includes("vasco")) return "https://images.thesportsdb.com/images/media/team/badge/vpxuuv1550232938.png";
+    if (b.includes("fluminense")) return "https://images.thesportsdb.com/images/media/team/badge/xvtqqv1550232661.png";
+    if (b.includes("botafogo")) return "https://images.thesportsdb.com/images/media/team/badge/vwpwyq1421494553.png";
+    if (b.includes("atletico mineiro") || b.includes("atletico-mg") || b.includes("mineiro")) return "https://images.thesportsdb.com/images/media/team/badge/vvpvwq1550232688.png";
+    if (b.includes("cruzeiro")) return "https://images.thesportsdb.com/images/media/team/badge/wvrtqx1550232768.png";
+    if (b.includes("gremio")) return "https://images.thesportsdb.com/images/media/team/badge/twvqqp1550232759.png";
+    if (b.includes("internacional")) return "https://images.thesportsdb.com/images/media/team/badge/rsqvpy1550232653.png";
+    if (b.includes("bahia")) return "https://images.thesportsdb.com/images/media/team/badge/swttvx1550232822.png";
+    if (b.includes("fortaleza")) return "https://images.thesportsdb.com/images/media/team/badge/5uprrw1550232845.png";
+    if (b.includes("vitoria")) return "https://images.thesportsdb.com/images/media/team/badge/g89yvt1550232857.png";
+    if (b.includes("athletico paranaense") || b.includes("athletico-pr")) return "https://images.thesportsdb.com/images/media/team/badge/eqrxtw1550232830.png";
+    if (b.includes("bragantino")) return "https://images.thesportsdb.com/images/media/team/badge/0o8dss1576435016.png";
+    if (b.includes("mirassol")) return "https://images.thesportsdb.com/images/media/team/badge/f3b8901693751735.png";
+    if (b.includes("sport recife") || b === "sport") return "https://images.thesportsdb.com/images/media/team/badge/vwstry1550232921.png";
+    if (b.includes("ceara")) return "https://images.thesportsdb.com/images/media/team/badge/qtsvpr1550232838.png";
+
+    // Argentina Teams
+    if (b.includes("boca")) return "https://images.thesportsdb.com/images/media/team/badge/sstqyp1421497914.png";
+    if (b.includes("estudiantes")) return "https://images.thesportsdb.com/images/media/team/badge/8st7f41550232742.png";
+    if (b.includes("lanus")) return "https://images.thesportsdb.com/images/media/team/badge/vqpvyx1421498188.png";
+    if (b.includes("rosario") || b.includes("central")) return "https://images.thesportsdb.com/images/media/team/badge/9d9ofn1550233486.png";
+    if (b.includes("platense")) return "https://images.thesportsdb.com/images/media/team/badge/09clz01614769399.png";
+    if (b.includes("rivadavia")) return "https://images.thesportsdb.com/images/media/team/badge/ypttrw1439744439.png";
+    if (b.includes("river plate")) return "https://images.thesportsdb.com/images/media/team/badge/uvwxqy1421498118.png";
+
+    // Uruguay Teams
+    if (b.includes("penarol")) return "https://images.thesportsdb.com/images/media/team/badge/sttqpx1421501170.png";
+    if (b.includes("nacional")) return "https://images.thesportsdb.com/images/media/team/badge/tywtqu1421498007.png";
+
+    // Ecuador Teams
+    if (b.includes("ldu") || b.includes("quito")) return "https://images.thesportsdb.com/images/media/team/badge/twpsvy1422055610.png";
+    if (b.includes("del valle") || b.includes("idv")) return "https://images.thesportsdb.com/images/media/team/badge/5b6f0e1598009849.png";
+    if (b.includes("barcelona")) return "https://images.thesportsdb.com/images/media/team/badge/vquxww1422055376.png";
+
+    // Paraguay Teams
+    if (b.includes("cerro") || b.includes("porteno")) return "https://images.thesportsdb.com/images/media/team/badge/6t1iit1534015707.png";
+    if (b.includes("libertad")) return "https://images.thesportsdb.com/images/media/team/badge/rrtuxs1422056291.png";
+
+    // Peru Teams
+    if (b.includes("universitario")) return "https://images.thesportsdb.com/images/media/team/badge/xtpqru1422055535.png";
+    if (b.includes("cristal") || b.includes("sporting")) return "https://images.thesportsdb.com/images/media/team/badge/yqwuyv1422055523.png";
+    if (b.includes("cusco")) return "https://images.thesportsdb.com/images/media/team/badge/pqvtpy1473211516.png";
+
+    // Bolivia Teams
+    if (b.includes("bolivar") || b.includes("bolívar")) return "https://images.thesportsdb.com/images/media/team/badge/usptvw1422055743.png";
+    if (b.includes("always")) return "https://images.thesportsdb.com/images/media/team/badge/7o97k61611352494.png";
+
+    // Chile Teams
+    if (b.includes("catolica") || b.includes("católica")) return "https://images.thesportsdb.com/images/media/team/badge/xquyyu1421503673.png";
+    if (b.includes("coquimbo")) return "https://images.thesportsdb.com/images/media/team/badge/trtrrs1421503348.png";
+
+    // Colombia Teams
+    if (b.includes("junior")) return "https://images.thesportsdb.com/images/media/team/badge/qtqywy1422055835.png";
+    if (b.includes("santa fe")) return "https://images.thesportsdb.com/images/media/team/badge/rsstxv1422055805.png";
+    if (b.includes("medellin") || b.includes("medellín")) return "https://images.thesportsdb.com/images/media/team/badge/yxtusw1421500244.png";
+    if (b.includes("tolima")) return "https://images.thesportsdb.com/images/media/team/badge/wwvrrp1422056073.png";
+
+    // Venezuela Teams
+    if (b.includes("guaira")) return "https://images.thesportsdb.com/images/media/team/badge/vtwvwy1422056461.png";
+    if (b.includes("central") && b.includes("universidad")) return "https://images.thesportsdb.com/images/media/team/badge/turyxv1422056448.png";
+
+    // European fallbacks
+    if (b.includes("real madrid")) return "https://images.thesportsdb.com/images/media/team/badge/vwpvuv1421493796.png";
+    if (b.includes("barcelona")) return "https://images.thesportsdb.com/images/media/team/badge/0g80781521453229.png";
+    if (b.includes("manchester city")) return "https://images.thesportsdb.com/images/media/team/badge/vtsv701511477755.png";
     return `https://placehold.co/200x200/0f172a/ffffff?text=${encodeURIComponent(name.slice(0, 3).toUpperCase())}`;
   };
 

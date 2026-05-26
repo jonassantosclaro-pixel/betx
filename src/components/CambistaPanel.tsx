@@ -257,12 +257,19 @@ export const CambistaPanel: React.FC = () => {
         </div>
 
         {/* Quick commission dashboard panels */}
-        <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 w-full md:w-auto">
           <div className="bg-[#080D1A] border border-blue-900/35 p-3 rounded-xl text-left">
             <span className="text-[8px] text-slate-400 font-mono uppercase tracking-wider block font-bold">Clientes</span>
             <span className="text-sm font-black font-mono text-white flex items-center gap-1">
               <Users className="h-3.5 w-3.5 text-blue-400" />
               {activeClientsCount}
+            </span>
+          </div>
+
+          <div className="bg-[#080D1A] border border-blue-900/35 p-3 rounded-xl text-left">
+            <span className="text-[8px] text-emerald-400 font-mono uppercase tracking-wider block font-bold">Limite Disponível</span>
+            <span className="text-sm font-black font-mono text-emerald-400 block">
+              R$ {userProfile?.balance !== undefined ? userProfile.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "0,00"}
             </span>
           </div>
 

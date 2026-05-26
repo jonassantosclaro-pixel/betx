@@ -20,7 +20,8 @@ import {
   collection, 
   getDocs, 
   query, 
-  where 
+  where,
+  deleteDoc
 } from "firebase/firestore";
 
 const firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf-8"));
@@ -106,44 +107,84 @@ function cleanTeamId(name: string): string {
 function getTeamLogoUrl(teamName: string): string {
   const b = teamName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   
-  if (b.includes("lanus")) return "https://images.thesportsdb.com/images/media/team/badge/vqpvyx1421498188.png/tiny";
-  if (b.includes("mirassol")) return "https://images.thesportsdb.com/images/media/team/badge/f3b8901693751735.png/tiny";
-  if (b.includes("ldu q") || b.includes("quito")) return "https://images.thesportsdb.com/images/media/team/badge/twpsvy1422055610.png/tiny";
-  if (b.includes("always ready")) return "https://images.thesportsdb.com/images/media/team/badge/7o97k61611352494.png/tiny";
-  if (b.includes("estudiantes")) return "https://images.thesportsdb.com/images/media/team/badge/8st7f41550232742.png/tiny";
-  if (b.includes("medellin")) return "https://images.thesportsdb.com/images/media/team/badge/yxtusw1421500244.png/tiny";
-  if (b.includes("cusco")) return "https://images.thesportsdb.com/images/media/team/badge/pqvtpy1473211516.png/tiny";
-  if (b.includes("nacional")) return "https://images.thesportsdb.com/images/media/team/badge/tywtqu1421498007.png/tiny";
-  if (b.includes("coquimbo")) return "https://images.thesportsdb.com/images/media/team/badge/trtrrs1421503348.png/tiny";
-  if (b.includes("universitario")) return "https://images.thesportsdb.com/images/media/team/badge/xtpqru1422055535.png/tiny";
-  if (b.includes("tolima")) return "https://images.thesportsdb.com/images/media/team/badge/wwvrrp1422056073.png/tiny";
+  // Brazil Teams
+  if (b.includes("flamengo")) return "https://images.thesportsdb.com/images/media/team/badge/7vyv971550232585.png";
+  if (b.includes("palmeiras")) return "https://images.thesportsdb.com/images/media/team/badge/8qwvwv1550232607.png";
+  if (b.includes("corinthians")) return "https://images.thesportsdb.com/images/media/team/badge/uqpwws1550232617.png";
+  if (b.includes("sao paulo") || b.includes("são paulo")) return "https://images.thesportsdb.com/images/media/team/badge/qtpssy1550232646.png";
+  if (b.includes("santos")) return "https://images.thesportsdb.com/images/media/team/badge/puvvty1550232637.png";
+  if (b.includes("vasco")) return "https://images.thesportsdb.com/images/media/team/badge/vpxuuv1550232938.png";
+  if (b.includes("fluminense")) return "https://images.thesportsdb.com/images/media/team/badge/xvtqqv1550232661.png";
+  if (b.includes("botafogo")) return "https://images.thesportsdb.com/images/media/team/badge/vwpwyq1421494553.png";
+  if (b.includes("atletico mineiro") || b.includes("atletico-mg") || b.includes("mineiro")) return "https://images.thesportsdb.com/images/media/team/badge/vvpvwq1550232688.png";
+  if (b.includes("cruzeiro")) return "https://images.thesportsdb.com/images/media/team/badge/wvrtqx1550232768.png";
+  if (b.includes("gremio")) return "https://images.thesportsdb.com/images/media/team/badge/twvqqp1550232759.png";
+  if (b.includes("internacional")) return "https://images.thesportsdb.com/images/media/team/badge/rsqvpy1550232653.png";
+  if (b.includes("bahia")) return "https://images.thesportsdb.com/images/media/team/badge/swttvx1550232822.png";
+  if (b.includes("fortaleza")) return "https://images.thesportsdb.com/images/media/team/badge/5uprrw1550232845.png";
+  if (b.includes("vitoria")) return "https://images.thesportsdb.com/images/media/team/badge/g89yvt1550232857.png";
+  if (b.includes("athletico paranaense") || b.includes("athletico-pr")) return "https://images.thesportsdb.com/images/media/team/badge/eqrxtw1550232830.png";
+  if (b.includes("bragantino")) return "https://images.thesportsdb.com/images/media/team/badge/0o8dss1576435016.png";
+  if (b.includes("mirassol")) return "https://images.thesportsdb.com/images/media/team/badge/f3b8901693751735.png";
+  if (b.includes("sport recife") || b === "sport") return "https://images.thesportsdb.com/images/media/team/badge/vwstry1550232921.png";
+  if (b.includes("ceara")) return "https://images.thesportsdb.com/images/media/team/badge/qtsvpr1550232838.png";
 
-  if (b.includes("flamengo")) return "https://images.thesportsdb.com/images/media/team/badge/7vyv971550232585.png/tiny";
-  if (b.includes("palmeiras")) return "https://images.thesportsdb.com/images/media/team/badge/8qwvwv1550232607.png/tiny";
-  if (b.includes("sao paulo")) return "https://images.thesportsdb.com/images/media/team/badge/qtpssy1550232646.png/tiny";
-  if (b.includes("corinthians")) return "https://images.thesportsdb.com/images/media/team/badge/uqpwws1550232617.png/tiny";
-  if (b.includes("santos")) return "https://images.thesportsdb.com/images/media/team/badge/puvvty1550232637.png/tiny";
-  if (b.includes("botafogo")) return "https://images.thesportsdb.com/images/media/team/badge/vwpwyq1421494553.png/tiny";
-  if (b.includes("fluminense")) return "https://images.thesportsdb.com/images/media/team/badge/xvtqqv1550232661.png/tiny";
-  if (b.includes("vasco")) return "https://images.thesportsdb.com/images/media/team/badge/vpxuuv1550232938.png/tiny";
-  if (b.includes("cruzeiro")) return "https://images.thesportsdb.com/images/media/team/badge/wvrtqx1550232768.png/tiny";
-  if (b.includes("atletico") || b.includes("atletico-mg")) return "https://images.thesportsdb.com/images/media/team/badge/vvpvwq1550232688.png/tiny";
-  if (b.includes("gremio")) return "https://images.thesportsdb.com/images/media/team/badge/twvqqp1550232759.png/tiny";
-  if (b.includes("internacional")) return "https://images.thesportsdb.com/images/media/team/badge/rsqvpy1550232653.png/tiny";
-  if (b.includes("real madrid")) return "https://images.thesportsdb.com/images/media/team/badge/vwpvuv1421493796.png/tiny";
-  if (b.includes("barcelona")) return "https://images.thesportsdb.com/images/media/team/badge/0g80781521453229.png/tiny";
-  if (b.includes("manchester city")) return "https://images.thesportsdb.com/images/media/team/badge/vtsv701511477755.png/tiny";
-  if (b.includes("manchester united")) return "https://images.thesportsdb.com/images/media/team/badge/3nndbv1512401614.png/tiny";
-  if (b.includes("liverpool")) return "https://images.thesportsdb.com/images/media/team/badge/0984g51571591871.png/tiny";
-  if (b.includes("arsenal")) return "https://images.thesportsdb.com/images/media/team/badge/724sz61557004456.png/tiny";
-  if (b.includes("chelsea")) return "https://images.thesportsdb.com/images/media/team/badge/9618sh1587752495.png/tiny";
-  if (b.includes("bayern")) return "https://images.thesportsdb.com/images/media/team/badge/rwvwpv1421494056.png/tiny";
-  if (b.includes("paris saint") || b.includes("psg")) return "https://images.thesportsdb.com/images/media/team/badge/urywtp1448813131.png/tiny";
-  if (b.includes("sport recife")) return "https://images.thesportsdb.com/images/media/team/badge/vwstry1550232921.png/tiny";
-  if (b.includes("boca juniors")) return "https://images.thesportsdb.com/images/media/team/badge/sstqyp1421497914.png/tiny";
-  if (b.includes("river plate")) return "https://images.thesportsdb.com/images/media/team/badge/uvwxqy1421498118.png/tiny";
+  // Argentina Teams
+  if (b.includes("boca")) return "https://images.thesportsdb.com/images/media/team/badge/sstqyp1421497914.png";
+  if (b.includes("estudiantes")) return "https://images.thesportsdb.com/images/media/team/badge/8st7f41550232742.png";
+  if (b.includes("lanus")) return "https://images.thesportsdb.com/images/media/team/badge/vqpvyx1421498188.png";
+  if (b.includes("rosario") || b.includes("central")) return "https://images.thesportsdb.com/images/media/team/badge/9d9ofn1550233486.png";
+  if (b.includes("platense")) return "https://images.thesportsdb.com/images/media/team/badge/09clz01614769399.png";
+  if (b.includes("rivadavia")) return "https://images.thesportsdb.com/images/media/team/badge/ypttrw1439744439.png";
+  if (b.includes("river plate")) return "https://images.thesportsdb.com/images/media/team/badge/uvwxqy1421498118.png";
 
-  // Standard safe initials log
+  // Uruguay Teams
+  if (b.includes("penarol")) return "https://images.thesportsdb.com/images/media/team/badge/sttqpx1421501170.png";
+  if (b.includes("nacional")) return "https://images.thesportsdb.com/images/media/team/badge/tywtqu1421498007.png";
+
+  // Ecuador Teams
+  if (b.includes("ldu") || b.includes("quito")) return "https://images.thesportsdb.com/images/media/team/badge/twpsvy1422055610.png";
+  if (b.includes("del valle") || b.includes("idv")) return "https://images.thesportsdb.com/images/media/team/badge/5b6f0e1598009849.png";
+  if (b.includes("barcelona")) return "https://images.thesportsdb.com/images/media/team/badge/vquxww1422055376.png";
+
+  // Paraguay Teams
+  if (b.includes("cerro") || b.includes("porteno")) return "https://images.thesportsdb.com/images/media/team/badge/6t1iit1534015707.png";
+  if (b.includes("libertad")) return "https://images.thesportsdb.com/images/media/team/badge/rrtuxs1422056291.png";
+
+  // Peru Teams
+  if (b.includes("universitario")) return "https://images.thesportsdb.com/images/media/team/badge/xtpqru1422055535.png";
+  if (b.includes("cristal") || b.includes("sporting")) return "https://images.thesportsdb.com/images/media/team/badge/yqwuyv1422055523.png";
+  if (b.includes("cusco")) return "https://images.thesportsdb.com/images/media/team/badge/pqvtpy1473211516.png";
+
+  // Bolivia Teams
+  if (b.includes("bolivar") || b.includes("bolívar")) return "https://images.thesportsdb.com/images/media/team/badge/usptvw1422055743.png";
+  if (b.includes("always")) return "https://images.thesportsdb.com/images/media/team/badge/7o97k61611352494.png";
+
+  // Chile Teams
+  if (b.includes("catolica") || b.includes("católica")) return "https://images.thesportsdb.com/images/media/team/badge/xquyyu1421503673.png";
+  if (b.includes("coquimbo")) return "https://images.thesportsdb.com/images/media/team/badge/trtrrs1421503348.png";
+
+  // Colombia Teams
+  if (b.includes("junior")) return "https://images.thesportsdb.com/images/media/team/badge/qtqywy1422055835.png";
+  if (b.includes("santa fe")) return "https://images.thesportsdb.com/images/media/team/badge/rsstxv1422055805.png";
+  if (b.includes("medellin") || b.includes("medellín")) return "https://images.thesportsdb.com/images/media/team/badge/yxtusw1421500244.png";
+  if (b.includes("tolima")) return "https://images.thesportsdb.com/images/media/team/badge/wwvrrp1422056073.png";
+
+  // Venezuela Teams
+  if (b.includes("guaira")) return "https://images.thesportsdb.com/images/media/team/badge/vtwvwy1422056461.png";
+  if (b.includes("central") && b.includes("universidad")) return "https://images.thesportsdb.com/images/media/team/badge/turyxv1422056448.png";
+
+  // European Fallbacks
+  if (b.includes("real madrid")) return "https://images.thesportsdb.com/images/media/team/badge/vwpvuv1421493796.png";
+  if (b.includes("manchester city")) return "https://images.thesportsdb.com/images/media/team/badge/vtsv701511477755.png";
+  if (b.includes("manchester united")) return "https://images.thesportsdb.com/images/media/team/badge/3nndbv1512401614.png";
+  if (b.includes("liverpool")) return "https://images.thesportsdb.com/images/media/team/badge/0984g51571591871.png";
+  if (b.includes("arsenal")) return "https://images.thesportsdb.com/images/media/team/badge/724sz61557004456.png";
+  if (b.includes("chelsea")) return "https://images.thesportsdb.com/images/media/team/badge/9618sh1587752495.png";
+  if (b.includes("bayern")) return "https://images.thesportsdb.com/images/media/team/badge/rwvwpv1421494056.png";
+  if (b.includes("paris saint") || b.includes("psg")) return "https://images.thesportsdb.com/images/media/team/badge/urywtp1448813131.png";
+
+  // Standard safe initials logo
   return `https://placehold.co/100x100/0f172a/ffffff?text=${encodeURIComponent(teamName.slice(0, 2).toUpperCase())}`;
 }
 
@@ -176,6 +217,13 @@ const generateMockStandings = (league: string): StandingRow[] => {
 // Helper to generate dynamic matching dates
 const getTodayAtTime = (hour: number, minute: number): string => {
   const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};
+
+const getTomorrowAtTime = (hour: number, minute: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
   d.setHours(hour, minute, 0, 0);
   return d.toISOString();
 };
@@ -218,7 +266,7 @@ const getFallbackMatchesTodayTomorrow = (): Game[] => {
       homeTeam: "Estudiantes (Arg)",
       awayTeam: "Ind. Medellín (Col)",
       homeLogo: getTeamLogoUrl("Estudiantes"),
-      awayLogo: getTeamLogoUrl("Indm"),
+      awayLogo: getTeamLogoUrl("Independiente Medellín"),
       league: "Copa Libertadores",
       date: getTodayAtTime(21, 30),
       status: "SCHEDULED",
@@ -232,7 +280,7 @@ const getFallbackMatchesTodayTomorrow = (): Game[] => {
       homeTeam: "Flamengo (Bra)",
       awayTeam: "Cusco (Per)",
       homeLogo: getTeamLogoUrl("Flamengo"),
-      awayLogo: getTeamLogoUrl("Cusco"),
+      awayLogo: getTeamLogoUrl("Cusco FC"),
       league: "Copa Libertadores",
       date: getTodayAtTime(21, 30),
       status: "SCHEDULED",
@@ -246,7 +294,7 @@ const getFallbackMatchesTodayTomorrow = (): Game[] => {
       homeTeam: "Nacional (Uru)",
       awayTeam: "Coquimbo Unido (Chi)",
       homeLogo: getTeamLogoUrl("Nacional"),
-      awayLogo: getTeamLogoUrl("Coquimbo"),
+      awayLogo: getTeamLogoUrl("Coquimbo Unido"),
       league: "Copa Libertadores",
       date: getTodayAtTime(21, 30),
       status: "SCHEDULED",
@@ -260,7 +308,7 @@ const getFallbackMatchesTodayTomorrow = (): Game[] => {
       homeTeam: "Universitario (Per)",
       awayTeam: "Tolima (Col)",
       homeLogo: getTeamLogoUrl("Universitario"),
-      awayLogo: getTeamLogoUrl("Tolima"),
+      awayLogo: getTeamLogoUrl("Deportes Tolima"),
       league: "Copa Libertadores",
       date: getTodayAtTime(21, 30),
       status: "SCHEDULED",
@@ -380,6 +428,21 @@ async function performMasterSynchronization() {
       const gd = new Date(game.date);
       return gd >= tLower && gd <= tUpper && SUPPORTED_CHAMPIONSHIPS.includes(game.league);
     });
+
+    // Delete any old Copa Libertadores matches from Firestore before writing the new list
+    try {
+      const existingMatchesSnap = await getDocs(collection(db, "matches"));
+      for (const mDoc of existingMatchesSnap.docs) {
+        const data = mDoc.data() as Game;
+        if (data.league === "Copa Libertadores") {
+          await deleteDoc(doc(db, "matches", mDoc.id));
+          try { await deleteDoc(doc(db, "odds", mDoc.id)); } catch (_) {}
+          try { await deleteDoc(doc(db, "live_matches", mDoc.id)); } catch (_) {}
+        }
+      }
+    } catch (cleanErr) {
+      console.warn("Could not clean up old Copa Libertadores matches:", cleanErr);
+    }
 
     // Write matches list to Firebase Firestore `/matches` collection
     for (const match of filteredMatches) {
@@ -743,12 +806,50 @@ app.post("/api/games", async (req, res) => {
   }
 });
 
+// Endpoint to retrieve user email by their display name or phone number for authentication mapping
+app.post("/api/auth/get-user-email", async (req, res) => {
+  const { loginIdentifier } = req.body;
+  if (!loginIdentifier) {
+    return res.status(400).json({ error: "Identificador de login é obrigatório!" });
+  }
+
+  try {
+    const term = loginIdentifier.trim();
+    const usersRef = collection(db, "users");
+    
+    // First query by exact name
+    let q = query(usersRef, where("name", "==", term));
+    let snap = await getDocs(q);
+    
+    // If not found, try by phone number
+    if (snap.empty) {
+      q = query(usersRef, where("phoneNumber", "==", term));
+      snap = await getDocs(q);
+    }
+    
+    // Fallback: try search in users case-insensitively or return first match if matching name
+    if (!snap.empty) {
+      const userData = snap.docs[0].data();
+      return res.json({ email: userData.email });
+    } else {
+      return res.status(404).json({ error: "Cambista / Usuário não localizado com este identificador." });
+    }
+  } catch (err: any) {
+    console.error("Erro no get-user-email endpoint:", err);
+    return res.status(500).json({ error: "Erro interno no servidor ao localizar operador." });
+  }
+});
+
 // Admin endpoint to register/create a new Cambista account and profile in Firebase Auth + Firestore
 app.post("/api/admin/create-cambista", async (req, res) => {
-  const { name, email, password, commission } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "Nome, email e senha são obrigatórios!" });
+  const { name, phoneNumber, password, limit, commission } = req.body;
+  if (!name || !phoneNumber || !password) {
+    return res.status(400).json({ error: "Nome, número de telefone e senha são obrigatórios!" });
   }
+
+  // Auto-generate unique email identifier for Firebase Auth using the phone number
+  const phoneClean = phoneNumber.replace(/\D/g, "");
+  const generatedEmail = `${phoneClean ? phoneClean : name.toLowerCase().replace(/[^a-z0-9]/g, "")}@phbet.com`;
 
   try {
     // 1. Create User in Firebase Authentication using Identity Toolkit REST API
@@ -757,7 +858,7 @@ app.post("/api/admin/create-cambista", async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: email.toLowerCase().trim(),
+        email: generatedEmail.toLowerCase().trim(),
         password,
         returnSecureToken: true
       })
@@ -773,14 +874,17 @@ app.post("/api/admin/create-cambista", async (req, res) => {
 
     const localId = authData.localId; // The new firebase UID
     const nowStr = new Date().toISOString();
+    const limitNum = Number(limit) || 0;
 
     // 2. Register/Create user Profile in Firestore "users" collection
     await setDoc(doc(db, "users", localId), {
       userId: localId,
-      name,
-      email: email.toLowerCase().trim(),
+      name: name.trim(),
+      phoneNumber: phoneNumber.trim(),
+      email: generatedEmail.toLowerCase().trim(),
       role: "cambista",
-      balance: 0.0,
+      balance: limitNum,  // Starting balance/limit
+      limit: limitNum,    // Authorized max limit
       status: "active",
       createdAt: nowStr,
       updatedAt: nowStr
@@ -789,9 +893,11 @@ app.post("/api/admin/create-cambista", async (req, res) => {
     // 3. Register/Create cambista Profile in Firestore "cambistas" collection
     await setDoc(doc(db, "cambistas", localId), {
       cambistaId: localId,
-      name,
-      email: email.toLowerCase().trim(),
+      name: name.trim(),
+      phoneNumber: phoneNumber.trim(),
+      email: generatedEmail.toLowerCase().trim(),
       commission: Number(commission) || 10,
+      limit: limitNum,    // Set limit in cambista profile
       status: "active",
       createdBy: "admin",
       createdAt: nowStr,

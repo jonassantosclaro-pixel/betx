@@ -13,8 +13,8 @@ import { BetBuilderModal } from "./components/BetBuilderModal";
 import { UserPanel } from "./components/UserPanel";
 import { CambistaPanel } from "./components/CambistaPanel";
 import { AdminPanel } from "./components/AdminPanel";
-import { Game, BetSelection, OperationType } from "./types";
-import { doc, setDoc } from "firebase/firestore";
+import { Game, BetSelection, OperationType, LeagueDetail } from "./types";
+import { doc, setDoc, collection, onSnapshot, deleteDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "./firebase";
 import { ClassificacaoView } from "./components/ClassificacaoView";
 import { TeamDetailsView } from "./components/TeamDetailsView";
@@ -73,15 +73,15 @@ const LoginFormGate: React.FC<{ roleRequired: "cambista" | "admin" }> = ({ roleR
 
           <div>
             <label className="block text-[9px] font-mono tracking-widest text-[#94A3B8] uppercase font-black mb-1">
-              E-mail de Operador
+              {roleRequired === "cambista" ? "Seu Nome ou Telefone (Login)" : "E-mail de Operador"}
             </label>
             <input
-              type="email"
+              type="text"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#080D1A] border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500 transition"
-              placeholder="exemplo@phbet.com"
+              placeholder={roleRequired === "cambista" ? "Ex: Carlos Albuquerque" : "exemplo@phbet.com"}
             />
           </div>
 
@@ -163,7 +163,78 @@ const AppContent: React.FC = () => {
   // Games & Odds state
   const [games, setGames] = useState<Game[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
-  
+
+  // Dynamic Leagues from Firestore with automatic seeding support
+  const [leagues, setLeagues] = useState<LeagueDetail[]>([]);
+  const [loadingLeagues, setLoadingLeagues] = useState(true);
+
+  // Setup reactive listener for Firestore "leagues" collection and seed if needed
+  useEffect(() => {
+    const defaultLeagues: LeagueDetail[] = [
+      // Brasil
+      { name: "Brasileirão Série A", code: "BSA", region: "Brasil", flag: "🇧🇷" },
+      { name: "Brasileirão Série B", code: "BSB", region: "Brasil", flag: "🇧🇷" },
+      { name: "Copa do Brasil", code: "CDB", region: "Brasil", flag: "🏆" },
+      // Internacionais
+      { name: "Copa Libertadores", code: "CL", region: "América do Sul", flag: "🏆" },
+      { name: "Copa Sul-Americana", code: "CS", region: "América do Sul", flag: "🌎" },
+      { name: "Champions League", code: "UCL", region: "Europa", flag: "🇪🇺" },
+      { name: "Europa League", code: "UEL", region: "Europa", flag: "🇪🇺" },
+      { name: "Conference League", code: "UEC", region: "Europa", flag: "🇪🇺" },
+      { name: "Premier League", code: "PL", region: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+      { name: "La Liga", code: "LL", region: "Espanha", flag: "🇪🇸" },
+      { name: "Bundesliga", code: "BL", region: "Alemanha", flag: "🇩🇪" },
+      { name: "Serie A Itália", code: "SA", region: "Itália", flag: "🇮🇹" },
+      { name: "Ligue 1", code: "FL1", region: "França", flag: "🇫🇷" },
+      { name: "Eredivisie", code: "ERE", region: "Holanda", flag: "🇳🇱" },
+      { name: "Liga Portugal", code: "LPO", region: "Portugal", flag: "🇵🇹" },
+      { name: "MLS", code: "MLS", region: "Estados Unidos", flag: "🇺🇸" },
+      { name: "Saudi Pro League", code: "SPL", region: "Arábia Saudita", flag: "🇸🇦" },
+      // Seleções & Amistosos
+      { name: "Copa do Mundo", code: "WC", region: "Fifa", flag: "🌍" },
+      { name: "Eliminatórias", code: "ELI", region: "Fifa Qualifiers", flag: "🗺️" },
+      { name: "Nations League", code: "UNL", region: "Europa", flag: "🇪🇺" },
+      { name: "Eurocopa", code: "EUR", region: "Europa", flag: "🇪🇺" },
+      { name: "Copa América", code: "CA", region: "América", flag: "🏆" },
+      { name: "Amistosos de Seleções", code: "INT", region: "Amistosos", flag: "🤝" }
+    ];
+
+    const targetColl = collection(db, "leagues");
+    const unsubscribe = onSnapshot(targetColl, (snapshot) => {
+      const fetched: LeagueDetail[] = [];
+      snapshot.forEach((docSnap) => {
+        fetched.push({ ...docSnap.data() } as LeagueDetail);
+      });
+
+      if (fetched.length === 0) {
+        // Run seed synchronously
+        defaultLeagues.forEach(async (lg) => {
+          try {
+            await setDoc(doc(db, "leagues", lg.code), lg);
+          } catch (seedErr) {
+            console.error("League seeding failed for:", lg.code, seedErr);
+          }
+        });
+      } else {
+        // Maintain consistent default-list relative ordering
+        const orderMap = new Map(defaultLeagues.map((dl, idx) => [dl.code, idx]));
+        fetched.sort((a, b) => {
+          const idxA = orderMap.get(a.code) ?? 999;
+          const idxB = orderMap.get(b.code) ?? 999;
+          return idxA - idxB;
+        });
+        setLeagues(fetched);
+        setLoadingLeagues(false);
+      }
+    }, (snapErr) => {
+      console.warn("Could not synchronize leagues from cloud database:", snapErr);
+      setLeagues(defaultLeagues);
+      setLoadingLeagues(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Selections inside active bet slip list
   const [selectedSelections, setSelectedSelections] = useState<BetSelection[]>([]);
   
@@ -285,7 +356,7 @@ const AppContent: React.FC = () => {
     try {
       await setDoc(doc(db, "bets", generatedBetId), betTicketData);
 
-      if (userProfile && userProfile.role !== "cambista") {
+      if (userProfile) {
         await updateUserBalance(-stake);
       }
       
@@ -411,6 +482,7 @@ const AppContent: React.FC = () => {
             <LeftSidebar 
               selectedLeague={selectedLeague} 
               onSelectLeague={setSelectedLeague} 
+              leagues={leagues}
               className="flex-1"
             />
           ) : (
@@ -465,7 +537,7 @@ const AppContent: React.FC = () => {
 
           {activeView === "ADMIN" && (
             userProfile && userProfile.role === "admin" ? (
-              <AdminPanel games={games} onRefreshGames={loadActiveGames} />
+              <AdminPanel games={games} onRefreshGames={loadActiveGames} leagues={leagues} />
             ) : (
               <LoginFormGate roleRequired="admin" />
             )

@@ -13,7 +13,7 @@ import {
   updateDoc 
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { Game, Bet, CambistaProfile, UserProfile } from "../types";
+import { Game, Bet, CambistaProfile, UserProfile, LeagueDetail } from "../types";
 import { ConfigsPanel } from "./ConfigsPanel";
 import { 
   ShieldCheck, 
@@ -37,10 +37,17 @@ import {
 interface AdminPanelProps {
   games: Game[];
   onRefreshGames: () => void;
+  leagues: LeagueDetail[];
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames }) => {
-  const [activeSubTab, setActiveSubTab] = useState<"APOSTAS" | "ODDS" | "CAMBISTAS" | "CONFIGURACAO">("ODDS");
+export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames, leagues = [] }) => {
+  const [activeSubTab, setActiveSubTab] = useState<"APOSTAS" | "ODDS" | "CAMBISTAS" | "CAMPEONATOS" | "CONFIGURACAO">("ODDS");
+  
+  // States for Leagues Management
+  const [newLeagueName, setNewLeagueName] = useState("");
+  const [newLeagueCode, setNewLeagueCode] = useState("");
+  const [newLeagueRegion, setNewLeagueRegion] = useState("");
+  const [newLeagueFlag, setNewLeagueFlag] = useState("");
   
   // States for Bets
   const [allBets, setAllBets] = useState<Bet[]>([]);
@@ -50,9 +57,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
   const [cambistas, setCambistas] = useState<CambistaProfile[]>([]);
   const [loadingCambistas, setLoadingCambistas] = useState(true);
   const [newCambistaName, setNewCambistaName] = useState("");
-  const [newCambistaEmail, setNewCambistaEmail] = useState("");
+  const [newCambistaPhone, setNewCambistaPhone] = useState("");
   const [newCambistaPassword, setNewCambistaPassword] = useState("");
   const [newCambistaComm, setNewCambistaComm] = useState(10);
+  const [newCambistaLimit, setNewCambistaLimit] = useState<number>(2000); // Default and recommended starting limit R$ 2000,00
   const [showAddCambistaModal, setShowAddCambistaModal] = useState(false);
 
   // States for Odds overrides and Custom Game Additions
@@ -205,8 +213,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
   // Add new cambista profile to Firestore config list via server back-end
   const handleAddCambista = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCambistaName || !newCambistaEmail || !newCambistaPassword) {
-      alert("Preencha todos os campos, incluindo a senha do cambista!");
+    if (!newCambistaName || !newCambistaPhone || !newCambistaPassword) {
+      alert("Preencha todos os campos obrigatórios (nome, número de telefone e senha)!");
       return;
     }
 
@@ -216,8 +224,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newCambistaName,
-          email: newCambistaEmail.toLowerCase().trim(),
+          phoneNumber: newCambistaPhone.trim(),
           password: newCambistaPassword,
+          limit: Number(newCambistaLimit) || 0,
           commission: Number(newCambistaComm)
         })
       });
@@ -228,8 +237,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
         alert("Cambista criado com sucesso e ativo em tempo real!");
         setShowAddCambistaModal(false);
         setNewCambistaName("");
-        setNewCambistaEmail("");
+        setNewCambistaPhone("");
         setNewCambistaPassword("");
+        setNewCambistaLimit(2000);
       } else {
         alert(`Erro ao salvar cambista: ${resData?.error || "Erro desconhecido."}`);
       }
@@ -285,6 +295,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
     }
   };
 
+  // Create / add a new championship to global sync list
+  const handleCreateLeague = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLeagueName || !newLeagueCode || !newLeagueRegion || !newLeagueFlag) {
+      alert("Por favor, preencha todos os campos do campeonato!");
+      return;
+    }
+
+    const newLg: LeagueDetail = {
+      name: newLeagueName,
+      code: newLeagueCode.toUpperCase().trim(),
+      region: newLeagueRegion,
+      flag: newLeagueFlag,
+    };
+
+    try {
+      await setDoc(doc(db, "leagues", newLg.code), newLg);
+      setOddsOverrideStatus(`Campeonato "${newLg.name}" cadastrado com sucesso!`);
+      setNewLeagueName("");
+      setNewLeagueCode("");
+      setNewLeagueRegion("");
+      setNewLeagueFlag("");
+      setTimeout(() => setOddsOverrideStatus(null), 3500);
+    } catch (e) {
+      console.error("Firebase adding league err", e);
+      alert("Erro ao salvar campeonato.");
+    }
+  };
+
+  // Delete a league from Firestore to hide it from general sidebar
+  const handleDeleteLeague = async (code: string, name: string) => {
+    if (!confirm(`Deseja realmente excluir em definitivo o campeonato "${name}"? Esta ação removerá o campeonato da de listagem do menu.`)) return;
+    try {
+      await deleteDoc(doc(db, "leagues", code));
+      setOddsOverrideStatus(`Campeonato "${name}" excluído do sistema!`);
+      setTimeout(() => setOddsOverrideStatus(null), 3500);
+    } catch (e) {
+      console.error("Firebase deletion err for league", code, e);
+      alert("Erro ao excluir campeonato.");
+    }
+  };
+
   return (
     <div id="admin-hub-tab" className="flex-1 bg-slate-900/10 p-4 md:p-6 space-y-6 overflow-y-auto font-sans">
       
@@ -303,7 +355,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
         </div>
 
         {/* Quick Tabs navigations buttons - Wider, cleaner, more spaced out ("mais abertos") */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-[#080D1A] p-2 rounded-2xl border border-blue-900/35 select-none w-full">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 bg-[#080D1A] p-2 rounded-2xl border border-blue-900/35 select-none w-full">
           <button
             type="button"
             onClick={() => setActiveSubTab("ODDS")}
@@ -338,6 +390,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
             }`}
           >
             Cambistas
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("CAMPEONATOS")}
+            className={`py-3 px-4 rounded-xl text-xs md:text-sm font-black tracking-wider transition uppercase cursor-pointer text-center ${
+              activeSubTab === "CAMPEONATOS" 
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500 border border-blue-500" 
+                : "text-slate-400 hover:text-white bg-slate-900/20 hover:bg-slate-900/40 border border-transparent"
+            }`}
+          >
+            Campeonatos
           </button>
 
           <button
@@ -734,21 +798,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
           ) : (
             <div className="bg-[#080D1A]/55 rounded-2xl border border-blue-900/25 overflow-hidden">
               <div className="p-3 bg-[#080D1A] border-b border-blue-900/30 hidden sm:grid grid-cols-12 text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">
-                <span className="col-span-3">NOME DO CAMBISTA</span>
-                <span className="col-span-4">EMAIL DE LOGIN</span>
-                <span className="col-span-3 text-center">TAXA DE COMISSÃO (%)</span>
-                <span className="col-span-1 text-center">STATUS</span>
-                <span className="col-span-1 text-center">AÇÕES</span>
+                <span className="col-span-2">NOME DO CAMBISTA</span>
+                <span className="col-span-2">TELEFONE</span>
+                <span className="col-span-2">EMAIL / LOGIN</span>
+                <span className="col-span-2 text-center">LIMITE OPERACIONAL</span>
+                <span className="col-span-2 text-center">COMISSÃO (%)</span>
+                <span className="col-span-1 text-center font-mono">STATUS</span>
+                <span className="col-span-1 text-center font-mono">AÇÕES</span>
               </div>
 
               <div className="divide-y divide-blue-900/20">
                 {cambistas.map((item) => (
                   <div key={item.cambistaId} className="p-4 sm:grid sm:grid-cols-12 flex flex-col sm:flex-row gap-3 sm:gap-0 font-sans text-xs items-center justify-between">
-                    <span className="sm:col-span-3 text-white font-extrabold">{item.name}</span>
-                    <span className="sm:col-span-4 font-mono text-slate-350 text-slate-300">{item.email}</span>
+                    <span className="sm:col-span-2 text-white font-extrabold text-left truncate w-full sm:w-auto" title={item.name}>{item.name}</span>
+                    <span className="sm:col-span-2 font-mono text-slate-300 text-left w-full sm:w-auto">{item.phoneNumber || "Sem Telefone"}</span>
+                    <span className="sm:col-span-2 font-mono text-slate-400 text-[11px] truncate text-left w-full sm:w-auto" title={item.email}>{item.email}</span>
                     
+                    {/* INPUT DE LIMITE OPERACIONAL - REAL-TIME */}
+                    <div className="sm:col-span-2 flex items-center justify-center gap-1 w-full sm:w-auto">
+                      <span className="text-slate-500 font-mono text-[10px]">R$</span>
+                      <input 
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={item.limit !== undefined ? item.limit : 0}
+                        onChange={async (e) => {
+                          const val = Number(e.target.value);
+                          const docRef = doc(db, "cambistas", item.cambistaId);
+                          const userRef = doc(db, "users", item.cambistaId);
+                          try {
+                            await updateDoc(docRef, { limit: val });
+                            await updateDoc(userRef, { balance: val, limit: val });
+                          } catch (err) {
+                            console.error("Local state callback on error", err);
+                          }
+                        }}
+                        className="w-20 bg-[#080D1A] border border-blue-900/35 p-1 rounded-md text-center text-xs font-mono font-bold text-emerald-400 focus:border-emerald-500 outline-none"
+                      />
+                    </div>
+
                     {/* INPUT DE PORCENTAGEM DUSTINTO E INDIVIDUAL - REAL-TIME */}
-                    <div className="sm:col-span-3 flex items-center justify-center gap-2">
+                    <div className="sm:col-span-2 flex items-center justify-center gap-1.5 w-full sm:w-auto">
                       <input 
                         type="number"
                         min="0"
@@ -764,20 +854,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
                             console.error("Local state callback on error", err);
                           }
                         }}
-                        className="w-16 bg-[#080D1A] border border-blue-900/35 p-1 rounded-md text-center text-xs font-mono font-bold text-emerald-400 focus:border-blue-500 outline-none"
+                        className="w-14 bg-[#080D1A] border border-blue-900/35 p-1 rounded-md text-center text-xs font-mono font-bold text-sky-400 focus:border-sky-500 outline-none"
                       />
-                      <span className="text-[10px] font-mono text-slate-400 font-bold">% do stake</span>
+                      <span className="text-[10px] font-mono text-slate-400">%</span>
                     </div>
                     
-                    <span className="sm:col-span-1 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider ${
+                    <span className="sm:col-span-1 text-center w-full sm:w-auto">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
                         item.status === "active" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25" : "bg-rose-500/10 text-rose-400 border border-rose-500/25"
                       }`}>
-                        {item.status === "active" ? "ATIVO" : "BLOQUEADO"}
+                        {item.status === "active" ? "ATIVO" : "BLOQ"}
                       </span>
                     </span>
 
-                    <div className="sm:col-span-1 flex justify-center gap-1.5">
+                    <div className="sm:col-span-1 flex justify-center gap-1.5 w-full sm:w-auto">
                       <button
                         onClick={() => toggleCambistaStatus(item)}
                         className={`p-1 rounded-lg ${item.status === "active" ? "bg-[#030712] text-rose-400 hover:bg-rose-950/20 border border-blue-900/35" : "bg-emerald-950/20 text-emerald-400 border border-emerald-900/40"} text-[10px] font-bold transition cursor-pointer`}
@@ -796,6 +886,120 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === "CAMPEONATOS" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
+              {/* Form to add a championship */}
+              <div className="lg:col-span-5 bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 space-y-4">
+                <div className="flex items-center gap-2 pb-3.5 border-b border-blue-900/30">
+                  <PlusCircle className="h-5 w-5 text-emerald-400" />
+                  <h3 className="text-xs font-mono font-black text-white uppercase tracking-wider">Novo Campeonato</h3>
+                </div>
+
+                <form onSubmit={handleCreateLeague} className="space-y-4 text-xs">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Nome do Campeonato</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newLeagueName} 
+                      onChange={(e) => setNewLeagueName(e.target.value)} 
+                      placeholder="Ex: Campeonato Carioca"
+                      className="w-full text-xs bg-slate-950 border border-slate-700/60 p-2.5 rounded-xl text-white outline-none focus:border-blue-550 transition"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Código Único (Apenas Letras, Ex: CAR)</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newLeagueCode} 
+                      onChange={(e) => setNewLeagueCode(e.target.value.toUpperCase().trim())} 
+                      placeholder="Ex: CAR"
+                      className="w-full text-xs bg-slate-950 border border-slate-700/60 p-2.5 rounded-xl text-white outline-none font-mono focus:border-blue-550 transition"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Região / Pátria</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newLeagueRegion} 
+                      onChange={(e) => setNewLeagueRegion(e.target.value)} 
+                      placeholder="Ex: Rio de Janeiro"
+                      className="w-full text-xs bg-slate-950 border border-slate-700/60 p-2.5 rounded-xl text-white outline-none focus:border-blue-550 transition"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Emoji / Bandeira</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newLeagueFlag} 
+                      onChange={(e) => setNewLeagueFlag(e.target.value)} 
+                      placeholder="Ex: 🇧🇷 ou 🏆"
+                      className="w-full text-xs bg-slate-950 border border-slate-700/60 p-2.5 rounded-xl text-white outline-none font-sans focus:border-blue-550 transition"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black tracking-widest font-display text-xs uppercase rounded-xl transition border border-emerald-500 shadow-md cursor-pointer"
+                  >
+                    Adicionar Campeonato
+                  </button>
+                </form>
+              </div>
+
+              {/* List of active championships with individual Excluir action button */}
+              <div className="lg:col-span-7 bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3.5 border-b border-blue-900/30">
+                  <div className="flex items-center gap-2">
+                    <Bookmark className="h-5 w-5 text-blue-400" />
+                    <h3 className="text-xs font-mono font-black text-white uppercase tracking-wider">Campeonatos Ativos</h3>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono font-bold bg-[#080D1A] border border-blue-900/30 px-2.5 py-1 rounded-lg">
+                    Total: {leagues.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+                  {leagues.length === 0 ? (
+                    <div className="text-center py-16 text-slate-450 italic">
+                      Nenhum campeonato ativo no momento ou carregando...
+                    </div>
+                  ) : (
+                    leagues.map((lg) => (
+                      <div 
+                        key={lg.code} 
+                        className="p-3.5 bg-[#080D1A]/50 hover:bg-[#080D1A]/85 border border-blue-900/20 rounded-xl flex items-center justify-between gap-4 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl select-none">{lg.flag}</span>
+                          <div>
+                            <span className="font-display font-black text-white text-xs block">{lg.name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono font-bold">{lg.region} • {lg.code}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteLeague(lg.code, lg.name)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/30 hover:bg-red-600 hover:text-white border border-red-500/25 text-red-400 rounded-lg text-xs font-black transition cursor-pointer"
+                          title="Excluir Campeonato de forma definitiva"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Excluir</span>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -827,24 +1031,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ games, onRefreshGames })
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Email de Registro (Acesso)</label>
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Número de Telefone</label>
                     <input 
-                      type="email" 
-                      value={newCambistaEmail} 
-                      onChange={(e) => setNewCambistaEmail(e.target.value)} 
-                      placeholder="Ex: cambista@phbet.com"
+                      type="text" 
+                      value={newCambistaPhone} 
+                      onChange={(e) => setNewCambistaPhone(e.target.value)} 
+                      placeholder="Ex: 11999999999"
                       className="w-full text-xs bg-slate-950 border border-slate-700/60 p-2.5 rounded-xl text-white outline-none"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Senha de Registro (Acesso)</label>
+                    <label className="text-[10px] font-mono uppercase text-slate-400 font-bold block pl-1">Senha de Registro</label>
                     <input 
                       type="password" 
                       value={newCambistaPassword} 
                       onChange={(e) => setNewCambistaPassword(e.target.value)} 
-                      placeholder="Digite a senha de login do cambista"
+                      placeholder="Digite a senha do cambista"
                       className="w-full text-xs bg-slate-950 border border-slate-700/60 p-2.5 rounded-xl text-white outline-none"
+                    />
+                    <span className="text-[10px] text-slate-450 block text-slate-450 mt-0.5 pl-1 italic">
+                      Dica: O cambista usará seu **Nome** e esta **Senha** para se autenticar no Painel.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase text-emerald-400 font-bold block pl-1">Valor Limite do Cambista (Crédito para registrar apostas)</label>
+                    <input 
+                      type="number" 
+                      value={newCambistaLimit} 
+                      onChange={(e) => setNewCambistaLimit(Number(e.target.value))} 
+                      placeholder="Ex: 5000"
+                      className="w-full text-xs bg-slate-950 border border-emerald-900/40 text-emerald-400 p-2.5 rounded-xl outline-none font-mono"
                     />
                   </div>
 

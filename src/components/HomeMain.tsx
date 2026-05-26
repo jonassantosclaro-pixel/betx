@@ -321,46 +321,46 @@ export const HomeMain: React.FC<HomeMainProps> = ({
                           </div>
 
                           {/* Rightmost column: Standard outcome odds selectors and custom bet builder */}
-                          <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-center justify-end">
-                            <div className="flex items-center bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
+                          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+                            <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex-1 sm:flex-initial">
                               
                               {/* Option 1: HOME */}
                               <button
                                 onClick={() => onOddsSelect(game, "Resultado Final", "Casa", game.oddsHome)}
-                                className={`flex items-center justify-between gap-4 px-3 py-1.5 w-24 sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
+                                className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 flex-1 sm:flex-initial sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
                                   isSelected(game.gameId, "Casa")
                                     ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
                                     : "bg-transparent border-transparent hover:bg-slate-900 text-slate-300 hover:text-white"
                                 }`}
                               >
                                 <span className="text-[9px] text-slate-500 font-mono font-bold">1</span>
-                                <span className="font-mono text-xs font-black text-slate-200 group-hover:text-white">{game.oddsHome.toFixed(2)}</span>
+                                <span className="font-mono text-[11px] sm:text-xs font-black text-slate-200 group-hover:text-white">{game.oddsHome.toFixed(2)}</span>
                               </button>
 
                               {/* Option X: DRAW */}
                               <button
                                 onClick={() => onOddsSelect(game, "Resultado Final", "Empate", game.oddsDraw)}
-                                className={`flex items-center justify-between gap-4 px-3 py-1.5 w-24 sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
+                                className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 flex-1 sm:flex-initial sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
                                   isSelected(game.gameId, "Empate")
                                     ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
                                     : "bg-transparent border-transparent hover:bg-slate-900 text-slate-300 hover:text-white"
                                 }`}
                               >
                                 <span className="text-[9px] text-slate-500 font-mono font-bold">X</span>
-                                <span className="font-mono text-xs font-black text-slate-200 group-hover:text-white">{game.oddsDraw.toFixed(2)}</span>
+                                <span className="font-mono text-[11px] sm:text-xs font-black text-slate-200 group-hover:text-white">{game.oddsDraw.toFixed(2)}</span>
                               </button>
 
                               {/* Option 2: AWAY */}
                               <button
                                 onClick={() => onOddsSelect(game, "Resultado Final", "Fora", game.oddsAway)}
-                                className={`flex items-center justify-between gap-4 px-3 py-1.5 w-24 sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
+                                className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 flex-1 sm:flex-initial sm:w-20 rounded-lg transition duration-150 select-none cursor-pointer border ${
                                   isSelected(game.gameId, "Fora")
                                     ? "bg-blue-600 text-white font-black border-blue-500 shadow-md shadow-blue-500/20"
                                     : "bg-transparent border-transparent hover:bg-slate-900 text-slate-300 hover:text-white"
                                 }`}
                               >
                                 <span className="text-[9px] text-slate-500 font-mono font-bold">2</span>
-                                <span className="font-mono text-xs font-black text-slate-200 group-hover:text-white">{game.oddsAway.toFixed(2)}</span>
+                                <span className="font-mono text-[11px] sm:text-xs font-black text-slate-200 group-hover:text-white">{game.oddsAway.toFixed(2)}</span>
                               </button>
 
                             </div>
@@ -369,7 +369,7 @@ export const HomeMain: React.FC<HomeMainProps> = ({
                             <button
                               title="Criar aposta múltipla para este jogo"
                               onClick={() => onOpenBetBuilder(game)}
-                              className="h-[44px] w-[44px] flex items-center justify-center rounded-xl bg-[#0F172A] border border-blue-900/30 text-blue-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-950/20 transition duration-150 cursor-pointer"
+                              className="h-[38px] w-[38px] flex items-center justify-center rounded-xl bg-[#0F172A] border border-blue-900/30 text-blue-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-950/20 transition duration-150 cursor-pointer shrink-0"
                             >
                               <Sparkles className="h-4 w-4" />
                             </button>
