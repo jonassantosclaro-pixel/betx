@@ -33,6 +33,85 @@ import {
   Star
 } from "lucide-react";
 
+const LoginFormGate: React.FC<{ roleRequired: "cambista" | "admin" }> = ({ roleRequired }) => {
+  const { loginCustom } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSubmitting(true);
+    try {
+      await loginCustom(email, password);
+    } catch (err) {
+      setErrorMsg("Falha ao autenticar. Verifique suas credenciais.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-6 bg-slate-950/10 font-sans">
+      <div className="w-full max-w-sm bg-[#0F172A] border border-blue-900/40 rounded-2xl p-6 text-left space-y-4 shadow-xl">
+        <div className="text-center pb-2 border-b border-blue-900/20">
+          <Lock className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+          <h2 className="text-sm font-mono font-black text-white uppercase tracking-wider">Acesso Restrito</h2>
+          <p className="text-[11px] text-slate-450 text-slate-300 mt-1">
+            Esta área é restrita para contas do tipo {roleRequired === "admin" ? "Master Admin" : "Cambistas Credenciados"}. Faça login abaixo.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {errorMsg && (
+            <div className="p-2 bg-red-950/40 border border-red-500/20 text-red-000 text-red-400 text-[11px] rounded-lg">
+              {errorMsg}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[9px] font-mono tracking-widest text-[#94A3B8] uppercase font-black mb-1">
+              E-mail de Operador
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-[#080D1A] border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500 transition"
+              placeholder="exemplo@phbet.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[9px] font-mono tracking-widest text-[#94A3B8] uppercase font-black mb-1">
+              Senha do Sistema
+            </label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-[#080D1A] border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500 transition"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase rounded-lg transition active:scale-95 cursor-pointer"
+          >
+            {submitting ? "Autenticando..." : "Entrar agora"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AppContent: React.FC = () => {
   const { 
     userProfile, 
@@ -177,7 +256,6 @@ const AppContent: React.FC = () => {
 
   // Submit and write ticket wagers to Firestore database containing custom error catches
   const handlePlaceBet = async (stake: number, type: "simple" | "multiple" | "builder", customerName?: string) => {
-    if (!userProfile) return null;
     if (stake < 5) {
       throw new Error("O valor mínimo para realizar um palpite é de R$ 5,00!");
     }
@@ -190,9 +268,9 @@ const AppContent: React.FC = () => {
 
     const betTicketData = {
       betId: generatedBetId,
-      userId: userProfile.userId,
-      customerName: customerName || null,
-      cambistaId: userProfile.role === "cambista" ? userProfile.userId : null,
+      userId: userProfile ? userProfile.userId : "guest",
+      customerName: customerName || (userProfile ? userProfile.name : "Apostador Visitante"),
+      cambistaId: userProfile && userProfile.role === "cambista" ? userProfile.userId : null,
       status: "pending",
       stake: Number(stake.toFixed(2)),
       odds: Number(calculatedOdds.toFixed(2)),
@@ -207,7 +285,7 @@ const AppContent: React.FC = () => {
     try {
       await setDoc(doc(db, "bets", generatedBetId), betTicketData);
 
-      if (userProfile.role !== "cambista") {
+      if (userProfile && userProfile.role !== "cambista") {
         await updateUserBalance(-stake);
       }
       
@@ -241,124 +319,6 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (!userProfile) {
-    return (
-      <div className="min-h-screen bg-[#080D1A] flex items-center justify-center p-4 font-sans text-left text-slate-100 bg-[#080D1A]">
-        <div className="w-full max-w-md bg-[#0F172A] border-2 border-blue-600/30 rounded-2xl overflow-hidden shadow-2xl relative flex flex-col">
-          <div className="px-6 py-5 bg-gradient-to-r from-blue-900 to-blue-700 text-white relative">
-            <div className="flex items-center gap-2 mb-2">
-              <img 
-                src="https://i.postimg.cc/k4Wszn56/Chat-GPT-Image-26-de-mai-de-2026-13-03-24.png" 
-                alt="PH BET" 
-                referrerPolicy="no-referrer"
-                className="h-14 w-auto object-contain mx-auto filter drop-shadow-[0_0_8px_rgba(59,130,246,0.25)]"
-              />
-            </div>
-            <h3 className="font-display font-black text-xl tracking-tight">
-              {isRegisterMode ? "Criar Nova Conta" : "Portal de Acesso"}
-            </h3>
-            <p className="text-xs text-blue-200 mt-1">
-              {isRegisterMode ? "Cadastre-se na plataforma de apostas." : "Faça login para ver o feed de odds, painel do cambista ou área administrativa."}
-            </p>
-          </div>
-
-          <form onSubmit={handleLoginSubmit} className="p-6 space-y-4">
-            {loginError && (
-              <div className="p-3 bg-red-950/45 border border-red-500/30 text-red-400 text-xs rounded-xl">
-                {loginError}
-              </div>
-            )}
-
-            {isRegisterMode && (
-              <div>
-                <label className="block text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black mb-1.5">
-                  Nome Completo
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={registerName}
-                  onChange={(e) => setRegisterName(e.target.value)}
-                  placeholder="Seu nome ou apelido"
-                  className="w-full bg-slate-100 bg-slate-900 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black mb-1.5">
-                Endereço de E-mail
-              </label>
-              <input
-                type="email"
-                required
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="Seu email de login"
-                className="w-full bg-slate-100 bg-slate-900 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black mb-1.5 font-bold">
-                Senha do Usuário
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Sua senha secreta"
-                className="w-full bg-slate-100 bg-slate-900 border border-slate-700/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            {isRegisterMode && (
-              <div>
-                <label className="block text-[10px] font-mono tracking-widest text-slate-400 uppercase font-black mb-1.5 font-bold">
-                  Perfil Solicitado
-                </label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole("usuario")}
-                    className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition ${registerRole === "usuario" ? "bg-blue-600 border-blue-500 text-white" : "bg-slate-900 border-slate-700 text-slate-400"}`}
-                  >
-                    Apostador Comum
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole("cambista")}
-                    className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition ${registerRole === "cambista" ? "bg-blue-600 border-blue-500 text-white" : "bg-slate-900 border-slate-700 text-slate-400"}`}
-                  >
-                    Cambista Físico
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/10 transition active:scale-95 cursor-pointer"
-            >
-              {isRegisterMode ? "Cadastrar minha Conta" : "Realizar Login Seguro"}
-            </button>
-
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={() => setIsRegisterMode(!isRegisterMode)}
-                className="text-[11px] text-blue-400 hover:underline"
-              >
-                {isRegisterMode ? "Já tem conta? Faça login aqui" : "Ainda não tem conta? Crie aqui"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div id="phbet-hub" className="min-h-screen flex flex-col bg-[#080D1A] text-slate-100">
       
@@ -377,82 +337,72 @@ const AppContent: React.FC = () => {
               MENU DE OPERAÇÕES
             </span>
             
-            {userProfile && (userProfile.role === "usuario" || userProfile.role === "admin") && (
-              <button
-                id="nav-feed"
-                onClick={() => { setActiveView("FEED"); setSelectedLeague(null); }}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
-                  activeView === "FEED" 
-                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
-                    : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
-                }`}
-              >
-                <Trophy className="h-4 w-4 text-blue-400" />
-                Feed Esportivo (Odds)
-              </button>
-            )}
+            <button
+              id="nav-feed"
+              onClick={() => { setActiveView("FEED"); setSelectedLeague(null); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
+                activeView === "FEED" 
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
+                  : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
+              }`}
+            >
+              <Trophy className="h-4 w-4 text-blue-400" />
+              Feed Esportivo (Odds)
+            </button>
 
-            {userProfile && (userProfile.role === "usuario" || userProfile.role === "admin") && (
-              <button
-                id="nav-classificacao"
-                onClick={() => setActiveView("CLASSIFICACAO")}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
-                  activeView === "CLASSIFICACAO" 
-                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
-                    : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
-                }`}
-              >
-                <Trophy className="h-4 w-4 text-yellow-400" />
-                Classificações (Tabelas)
-              </button>
-            )}
+            <button
+              id="nav-classificacao"
+              onClick={() => setActiveView("CLASSIFICACAO")}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
+                activeView === "CLASSIFICACAO" 
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
+                  : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
+              }`}
+            >
+              <Trophy className="h-4 w-4 text-yellow-400" />
+              Classificações (Tabelas)
+            </button>
 
-            {userProfile && (userProfile.role === "usuario" || userProfile.role === "admin") && (
-              <button
-                id="nav-history"
-                onClick={() => setActiveView("HISTORICO")}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
-                  activeView === "HISTORICO" 
-                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
-                    : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
-                }`}
-              >
-                <History className="h-4 w-4 text-sky-400" />
-                Minhas Apostas (Bilhetes)
-              </button>
-            )}
+            <button
+              id="nav-history"
+              onClick={() => setActiveView("HISTORICO")}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
+                activeView === "HISTORICO" 
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
+                  : "text-slate-350 text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
+              }`}
+            >
+              <History className="h-4 w-4 text-sky-400" />
+              {userProfile ? "Minhas Apostas (Bilhetes)" : "Conferir Bilhete (Voucher)"}
+            </button>
 
-            {/* Cambista panel view toggle - visible only for Cambistas and Admins */}
-            {userProfile && (userProfile.role === "cambista" || userProfile.role === "admin") && (
-              <button
-                id="nav-cambista"
-                onClick={() => setActiveView("CAMBISTA")}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
-                  activeView === "CAMBISTA" 
-                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
-                    : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
-                }`}
-              >
-                <Briefcase className="h-4 w-4 text-emerald-400" />
-                Painel do Cambista
-              </button>
-            )}
+            {/* Cambista panel view toggle - visible for everyone but gate-guarded */}
+            <button
+              id="nav-cambista"
+              onClick={() => setActiveView("CAMBISTA")}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
+                activeView === "CAMBISTA" 
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
+                  : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
+              }`}
+            >
+              <Briefcase className="h-4 w-4 text-emerald-400" />
+              Painel do Cambista
+            </button>
 
-            {/* Admin panel view toggle - strictly visible to Admin */}
-            {userProfile && userProfile.role === "admin" && (
-              <button
-                id="nav-admin"
-                onClick={() => setActiveView("ADMIN")}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
-                  activeView === "ADMIN" 
-                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
-                    : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
-                }`}
-              >
-                <ShieldCheck className="h-4 w-4 text-red-400 animate-pulse" />
-                Painel Admin Master
-              </button>
-            )}
+            {/* Admin panel view toggle - visible for everyone but gate-guarded */}
+            <button
+              id="nav-admin"
+              onClick={() => setActiveView("ADMIN")}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition text-left cursor-pointer border ${
+                activeView === "ADMIN" 
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
+                  : "text-slate-300 border-transparent hover:bg-slate-800/40 hover:text-white"
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4 text-red-400" />
+              Painel Admin Master
+            </button>
 
           </div>
 
@@ -505,9 +455,21 @@ const AppContent: React.FC = () => {
 
           {activeView === "HISTORICO" && <UserPanel />}
 
-          {activeView === "CAMBISTA" && <CambistaPanel />}
+          {activeView === "CAMBISTA" && (
+            userProfile && (userProfile.role === "cambista" || userProfile.role === "admin") ? (
+              <CambistaPanel />
+            ) : (
+              <LoginFormGate roleRequired="cambista" />
+            )
+          )}
 
-          {activeView === "ADMIN" && <AdminPanel games={games} onRefreshGames={loadActiveGames} />}
+          {activeView === "ADMIN" && (
+            userProfile && userProfile.role === "admin" ? (
+              <AdminPanel games={games} onRefreshGames={loadActiveGames} />
+            ) : (
+              <LoginFormGate roleRequired="admin" />
+            )
+          )}
         </div>
 
         {/* Right Sidebar: Active Interactive Bet Slip */}

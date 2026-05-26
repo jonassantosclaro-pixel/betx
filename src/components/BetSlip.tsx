@@ -69,18 +69,20 @@ export const BetSlip: React.FC<BetSlipProps> = ({
     }
 
     if (!userProfile) {
-      setErrorText("Você precisa estar logado na sua conta para registrar palpites!");
-      return;
-    }
+      if (!customerName.trim()) {
+        setErrorText("Por favor, digite seu nome ou apelido para gerar o Token pré-aposta!");
+        return;
+      }
+    } else {
+      if (userProfile.role !== "cambista" && userProfile.balance < stake) {
+        setErrorText("Saldo insuficiente na sua banca para realizar esta aposta!");
+        return;
+      }
 
-    if (userProfile.role !== "cambista" && userProfile.balance < stake) {
-      setErrorText("Saldo insuficiente na sua banca para realizar esta aposta!");
-      return;
-    }
-
-    if (userProfile.role === "cambista" && !customerName.trim()) {
-      setErrorText("O Cambista deve registrar o nome do cliente no bilhete!");
-      return;
+      if (userProfile.role === "cambista" && !customerName.trim()) {
+        setErrorText("O Cambista deve registrar o nome do cliente no bilhete!");
+        return;
+      }
     }
 
     setPlacing(true);
@@ -192,18 +194,18 @@ export const BetSlip: React.FC<BetSlipProps> = ({
           {/* Betting Configuration Dashboard */}
           <div className="bg-slate-900 p-4 rounded-xl border border-blue-900/35 space-y-4">
             
-            {/* If broker/cambista, add Client parameter */}
-            {userProfile?.role === "cambista" && (
+            {/* If broker/cambista or guest, add Client/Apostador parameter */}
+            {(!userProfile || userProfile?.role === "cambista") && (
               <div className="space-y-1 text-left">
                 <label className="text-[10px] font-mono uppercase font-black text-white tracking-widest flex items-center gap-1">
                   <User className="h-3 w-3 text-blue-400" />
-                  Nome do Cliente (Obrigatório)
+                  {userProfile ? "Nome do Cliente (Obrigatório)" : "Seu Nome / Identificador (Obrigatório)"}
                 </label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Ex: João da Silva"
+                  placeholder={userProfile ? "Ex: João da Silva" : "Seu nome ou apelido"}
                   className="w-full text-xs bg-slate-950 border border-slate-700/60 focus:border-blue-500 hover:border-slate-600 px-3 py-2 rounded-xl text-white font-medium outline-none transition"
                 />
               </div>

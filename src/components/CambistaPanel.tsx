@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import { Bet } from "../types";
@@ -16,7 +16,10 @@ import {
   TrendingUp,
   XCircle,
   Stamp,
-  Users
+  Users,
+  Search,
+  Check,
+  AlertCircle
 } from "lucide-react";
 
 export const CambistaPanel: React.FC = () => {
@@ -24,6 +27,14 @@ export const CambistaPanel: React.FC = () => {
   const [bets, setBets] = useState<Bet[]>([]);
   const [loading, setLoading] = useState(true);
   const [commissionRatePercent, setCommissionRatePercent] = useState<number>(10); // default to 10%
+
+  // Guest pre-bet tracking and capture
+  const [guestBets, setGuestBets] = useState<Bet[]>([]);
+  const [searchTicketId, setSearchTicketId] = useState("");
+  const [searchTicketResult, setSearchTicketResult] = useState<Bet | null>(null);
+  const [searchTicketLoading, setSearchTicketLoading] = useState(false);
+  const [searchTicketError, setSearchTicketError] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Fallback mock bets for cambista to preview styling before Firestore database entries
   const localSimulatedCambistaBets: Bet[] = [
@@ -114,6 +125,87 @@ export const CambistaPanel: React.FC = () => {
     return () => unsubscribe();
   }, [userProfile]);
 
+  // Listen to ALL pending client/guest pre-bets awaiting registration (cambistaId === null or undefined)
+  useEffect(() => {
+    if (!userProfile) return;
+
+    const colRef = collection(db, "bets");
+    // We want guest bets that are pending and don't have a cambistaId yet
+    const q = query(colRef, where("userId", "==", "guest"), where("status", "==", "pending"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched: Bet[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data() as Bet;
+        if (!data.cambistaId) {
+          fetched.push(data);
+        }
+      });
+      // Sort descending
+      fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setGuestBets(fetched);
+    }, (error) => {
+      console.warn("Could not query guest pending pre-bets: ", error);
+    });
+
+    return () => unsubscribe();
+  }, [userProfile]);
+
+  const handleSearchPendingTicket = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!searchTicketId.trim()) return;
+
+    setSearchTicketLoading(true);
+    setSearchTicketError(null);
+    setSearchTicketResult(null);
+
+    try {
+      const docRef = doc(db, "bets", searchTicketId.trim().toUpperCase());
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const betData = docSnap.data() as Bet;
+        if (betData.cambistaId) {
+          setSearchTicketError(`Este bilhete já está registrado pelo cambista ID: ${betData.cambistaId}`);
+        } else if (betData.status !== "pending") {
+          setSearchTicketError(`Este bilhete não está pendente (Status: ${betData.status})`);
+        } else {
+          setSearchTicketResult(betData);
+        }
+      } else {
+        setSearchTicketError("Pré-Aposta / Bilhete não localizado. Verifique se o código está correto.");
+      }
+    } catch (err) {
+      console.error(err);
+      setSearchTicketError("Erro ao pesquisar pré-aposta.");
+    } finally {
+      setSearchTicketLoading(false);
+    }
+  };
+
+  const handleCapturePreBet = async (betId: string) => {
+    if (!userProfile) return;
+    setActionLoadingId(betId);
+
+    try {
+      const docRef = doc(db, "bets", betId);
+      await updateDoc(docRef, {
+        cambistaId: userProfile.userId,
+        updatedAt: new Date().toISOString()
+      });
+      // Clean search result if it was the captured bet
+      if (searchTicketResult && searchTicketResult.betId === betId) {
+        setSearchTicketResult(null);
+        setSearchTicketId("");
+      }
+      alert(`Sucesso! O bilhete ${betId} foi registrado com sucesso em seu nome. Comissão creditada automaticamente.`);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao registrar bilhete.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   // Cambistas receive dynamic commission of the stakes registered
   const commissionRate = commissionRatePercent / 100; 
   const totalWagered = bets.reduce((acc, curr) => acc + curr.stake, 0);
@@ -199,6 +291,143 @@ export const CambistaPanel: React.FC = () => {
         <p className="text-xs text-slate-300 leading-relaxed">
           Basta montar os palpites escolhidos pelo seu cliente utilizando o <strong>Feed Esportivo de Odds</strong> no menu ao lado. Ao preencher o cupom à direita, o sistema abrirá um campo obrigatório para você digitar o <strong>Nome do Cliente</strong>. Ao gravar o palpite, o voucher é emitido, seu saldo é preservado, e sua comissão de {commissionRatePercent}% é creditada de imediato no relatório abaixo!
         </p>
+      </div>
+
+      {/* SECTION: Validar Pré-Aposta do Cliente */}
+      <div className="bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 text-left space-y-4">
+        <div>
+          <h2 className="text-xs font-mono font-black text-white uppercase tracking-wider flex items-center gap-1.5 select-none">
+            <Search className="h-4 w-4 text-emerald-400 animate-pulse" />
+            Validar Código do Cliente (Token de Pré-Aposta)
+          </h2>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Digite o código do bilhete (ex: BILHETE-55102) gerado pelo cliente para registrá-lo em seu nome de cambista e garantir seu comissionamento.
+          </p>
+        </div>
+
+        <form onSubmit={handleSearchPendingTicket} className="flex gap-2">
+          <input
+            type="text"
+            value={searchTicketId}
+            onChange={(e) => setSearchTicketId(e.target.value)}
+            placeholder="Digite o código (Ex: BILHETE-55102)"
+            className="flex-1 bg-[#080D1A] border border-slate-700/60 focus:border-emerald-500 rounded-xl px-4 py-2 text-xs text-white uppercase font-mono font-bold outline-none transition"
+          />
+          <button
+            type="submit"
+            disabled={searchTicketLoading}
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-extrabold text-xs transition flex items-center gap-1 cursor-pointer"
+          >
+            {searchTicketLoading ? "Buscando..." : "Buscar Pré-Aposta"}
+          </button>
+        </form>
+
+        {searchTicketError && (
+          <div className="p-3 bg-red-950/20 border border-red-500/25 text-red-400 text-xs rounded-xl flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+            <span>{searchTicketError}</span>
+          </div>
+        )}
+
+        {searchTicketResult && (
+          <div className="border border-emerald-500/35 bg-emerald-950/5 rounded-xl p-4 space-y-3 relative overflow-hidden font-sans">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
+              <div className="text-xs font-mono">
+                <span className="bg-emerald-500 text-slate-900 px-2.5 py-0.5 rounded font-black tracking-wider">{searchTicketResult.betId}</span>
+                <span className="text-slate-400 ml-2">Cliente:</span> <strong className="text-white">{searchTicketResult.customerName || "Visitante"}</strong>
+              </div>
+              <div className="text-xs font-sans text-slate-400">
+                Aguardando registro
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-xs text-slate-350">
+              {searchTicketResult.selections.map((sel, idx) => (
+                <div key={idx} className="bg-[#080D1A]/40 p-2 rounded border border-blue-900/10 text-left">
+                  <span className="text-[9px] text-slate-500 block font-mono uppercase font-bold">{sel.league}</span>
+                  <strong>{sel.homeTeam} x {sel.awayTeam}</strong>
+                  <span className="text-slate-500 mx-1">·</span>
+                  <span>Seleção: <strong className="text-white">{sel.selection}</strong> (@{sel.odds.toFixed(2)})</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#080D1A] p-2.5 rounded-xl border border-blue-900/15">
+              <div className="text-xs font-mono text-left">
+                Valor: <strong className="text-white">R$ {searchTicketResult.stake.toFixed(2)}</strong>
+                <span className="text-slate-500 mx-1.5">|</span>
+                Odds: <strong className="text-[#A5F3FC]">@{searchTicketResult.odds.toFixed(2)}</strong>
+                <span className="text-slate-500 mx-1.5">|</span>
+                Retorno: <strong className="text-emerald-400">R$ {searchTicketResult.potentialPayout.toFixed(2)}</strong>
+              </div>
+              <button
+                type="button"
+                disabled={actionLoadingId === searchTicketResult.betId}
+                onClick={() => handleCapturePreBet(searchTicketResult.betId)}
+                className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-black uppercase rounded-lg transition shadow-md hover:shadow-emerald-500/20 cursor-pointer active:scale-95 animate-pulse"
+              >
+                {actionLoadingId === searchTicketResult.betId ? "Registrando..." : "Registrar & Guardar"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION: Pré-Apostas de Clientes Visitantes na Fila */}
+      <div className="bg-[#0F172A] border border-blue-900/35 rounded-2xl p-4 md:p-5 text-left space-y-4 font-sans">
+        <div className="flex items-center justify-between pb-2 border-b border-blue-900/25">
+          <h2 className="text-xs font-mono font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-blue-400" />
+            Fila de Tokens de Clientes (Pré-Apostas Pendentes)
+          </h2>
+          <span className="bg-[#080D1A] text-blue-400 px-2 py-0.5 rounded-lg border border-blue-900/40 text-[10px] font-mono font-bold">
+            {guestBets.length} Na Fila
+          </span>
+        </div>
+
+        {guestBets.length === 0 ? (
+          <p className="text-xs text-slate-400 py-3 text-center">
+            Nenhuma pré-aposta de visitante pendente no momento. As pré-apostas criadas por visitantes no site aparecem aqui imediatamente!
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {guestBets.map((gBet) => (
+              <div 
+                key={gBet.betId}
+                className="bg-[#080D1A]/60 border border-blue-900/25 hover:border-emerald-500/25 rounded-xl p-3 space-y-2.5 transition flex flex-col justify-between"
+              >
+                <div className="space-y-1.5 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded font-mono font-bold text-[10px] tracking-wider border border-blue-600/30">
+                      {gBet.betId}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Cliente: <strong className="text-white">{gBet.customerName || "Anônimo"}</strong>
+                    </span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-350 line-clamp-2">
+                    {gBet.selections.map(s => `${s.homeTeam} x ${s.awayTeam} (Sel: ${s.selection})`).join(" | ")}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-blue-900/20">
+                  <div className="text-[10px] font-mono text-slate-400 text-left">
+                    Valor: <strong className="text-white">R$ {gBet.stake.toFixed(2)}</strong> <span className="text-slate-600">·</span> Retorno: <strong className="text-emerald-400">R$ {gBet.potentialPayout.toFixed(2)}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={actionLoadingId === gBet.betId}
+                    onClick={() => handleCapturePreBet(gBet.betId)}
+                    className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-900 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/20 transition cursor-pointer"
+                  >
+                    {actionLoadingId === gBet.betId ? "gravando..." : "Registrar"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Relatório detailed table */}
